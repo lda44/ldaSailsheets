@@ -32,7 +32,7 @@ def export_excel():
         result = c.fetchall()    
         # open the backup file: a=append, r=readonly, w=write (new)
         
-        with open('../Backups/' + str(today) + '_' + table_name + '.csv', 'w', newline='') as f:
+        with open('./Backups/' + str(today) + '_' + table_name + '.csv', 'w', newline='') as f:
             w = csv.writer(f, dialect='excel')
             for record in result:
                 w.writerow(record)

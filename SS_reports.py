@@ -23,7 +23,7 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
                     'July', 'August', 'September',
                     'October', 'November', 'December']
 
-    reportpath = '../Reports/' + str(d.year)
+    reportpath = './Reports/' + str(d.year)
     p = Path(reportpath) 
     
     if not Path(reportpath).exists():
@@ -251,13 +251,13 @@ def ReportMemberUse(mymonth, myyear):
                     'July', 'August', 'September',
                     'October', 'November', 'December']    
 
-    reportpath = '../Reports/' + str(d.year)
+    reportpath = './Reports/' + str(d.year)
     p = Path(reportpath) 
 
     if not Path(reportpath).exists():
         p.mkdir(parents=True)
 
-    myreportname =  '../Reports/' + str(d.year) +'/' + month_list[mymonth-1] + ' ' + str(d.year) + ' Usage - Members' + '.csv'
+    myreportname =  './Reports/' + str(d.year) +'/' + month_list[mymonth-1] + ' ' + str(d.year) + ' Usage - Members' + '.csv'
 
     db = sqlite3.connect('Sailsheets.db')
     c = db.cursor()

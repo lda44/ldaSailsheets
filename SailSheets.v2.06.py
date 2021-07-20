@@ -1,21 +1,16 @@
 #####################################################################
 #
-# NavyPaxSail Sailsheets application (admin only)
+# NavyPaxSail Sailsheets application
 #
 #      VERSION 2
 #
-#      This app is for stand alone use at the Clubhouse. An admin 
-# user will log in to the linux box using the NPSC Admin login 
-# credentials, then open this app.  There is no password for this app.
-#
-#      This app ONLY performs admin functions and is NOT meant for 
-# adding or closing Sail Plans.
+# This app is for stand alone use at the Clubhouse. 
 #
 # All paths used by this app are:
 #       Main:   /home/NPSC
 #       App:    /home/NPSC/SailSheets
-#       Report: /home/NPSC/Reports
-#       Backup: /home/NPSC/Backups
+#       Report: /home/NPSC/SailSheets/Reports
+#       Backup: /home/NPSC/SailSheets/Backups
 #
 #
 # This app uses sqlite3, tkinter, and tkcalendar
