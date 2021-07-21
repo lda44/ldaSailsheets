@@ -1,22 +1,51 @@
 #####################################################################
 #
-# NavyPaxSail Sailsheets application
-#
-#      VERSION 2
-#
-# This app is for stand alone use at the Clubhouse. 
-#
-# All paths used by this app are:
-#       Main:   /home/NPSC
-#       App:    /home/NPSC/SailSheets
-#       Report: /home/NPSC/SailSheets/Reports
-#       Backup: /home/NPSC/SailSheets/Backups
-#
-#
-# This app uses sqlite3, tkinter, and tkcalendar
-# Ensure these are installed on the linux box if using for the first 
-# time.
-#
+'''\
+    NavyPaxSail Sailsheets application
+
+        VERSION 2
+
+    This app is for stand alone use at the Clubhouse. This version 
+    fixes bugs in VERSION 1 and replaces the older C++ code and 
+    libraries with Python code and libraries for easier maintenance
+    in the future.
+
+    All paths used by this app are:
+        Main:   /home/NPSC
+        App:    /home/NPSC/SailSheets
+        Report: /home/NPSC/SailSheets/Reports
+        Backup: /home/NPSC/SailSheets/Backups
+        Import: /home/NPSC/SailSheets/Transfer
+
+
+    This app uses sqlite3, tkinter, and tkcalendar
+    Ensure these are installed on the linux box if using for the first 
+    time.
+ 
+
+    Program Structure:
+        Main module
+            Admin module (admin use only)
+                Edit Settings
+                Edit Members table
+                Edit Boats table
+                Edit Purpose table
+                Import AllMembers.csv from Club Express
+                Export all tables to Excel(csv format)
+                Create monthly reports
+                    Boat Usage (includes NPSC boats)
+                    Boat Usage (excludes NPSC boats)
+                    Member Usage w rental fees for upload to Club Express
+           Sail Plan module (all users)
+
+PLEASE NOTE:
+    The app checks the user (logged in via Linux) and if NPSC_Admin 
+    allows all functions to be available.  If not NPSC_Admin (any 
+    other user -- should be NPSC_Sailor) the app will only allow
+    Sail Plan entry/edit.  
+\
+ '''
+
 #####################################################################
 #
 # First task is to import any necessary libraries
@@ -2262,33 +2291,31 @@ def editsettings():
     # This function is meant to allow editing of the settings for the 
     # App.
     #
-    # There are only 3 settings:
-    # 1. Admin password
-    # 2. Club discount percentage (10%)
+    # There are only 2 settings:
+    # 1. Club discount percentage (10%)
     # 3. Grace period for boat rental, in case the boat is down (30 mins)
+    #
+    # Note: the admin password has been removed as it was not secure.
     #
     #################################################################
     
-    def makechange():
-        global mypw, mydiscount, mygrace
-        new_pw = pw_box.get()
+    def makechange(mydiscount, mygrace):
         new_discount = int(discount_box.get())
         new_grace = int(grace_box.get())
         
-        if (mydiscount != new_discount or mypw != new_pw or mygrace != new_grace):
+        if (mydiscount != new_discount or mygrace != new_grace):
             db = sqlite3.connect('Sailsheets.db')
             c = db.cursor()
-            c.execute("DELETE FROM Settings WHERE (pw=?)", [mypw])
-            c.execute("INSERT OR REPLACE INTO Settings(discount, pw, delay) VALUES (?, ?, ?)", 
-                (new_discount, new_pw, new_grace))
+            c.execute("DROP TABLE Settings")
+            c.execute("CREATE TABLE if not exists Settings (discount int, delay int)")
+            c.execute("INSERT OR REPLACE INTO Settings(discount, delay) VALUES (?, ?)", 
+                (new_discount, new_grace))
             db.commit()
             db.close()
             settings_frame.destroy()
         else:
             settings_frame.destroy()
             return
-
-    global mypw, mydiscount, mygrace
 
     #first, clear any frames that may be on the screen
     for stuff in root.winfo_children():
@@ -2304,8 +2331,8 @@ def editsettings():
     db.close()
 
     mydiscount = setlist[0]
-    mypw = setlist[1]
-    mygrace = setlist[2]
+    #mypw = setlist[1]
+    mygrace = setlist[1]
 
     # create the frame
     #
@@ -2316,28 +2343,22 @@ def editsettings():
     discount = Label(settings_frame, text="Club Discount")
     discount.grid(row=0, column=0)
 
-    pw = Label(settings_frame, text="Admin Password")
-    pw.grid(row=0, column=1)
-
     grace = Label(settings_frame, text="Grace period (minutes)")
     grace.grid(row=0, column=2)
 
     # Entry boxes
-    discount_box = Entry(settings_frame)
+    discount_box = Entry(settings_frame, width=5, justify=CENTER)
     discount_box.insert(0, mydiscount)
     discount_box.grid(row=1, column=0)
 
-    pw_box = Entry(settings_frame)
-    pw_box.insert(0, mypw)
-    pw_box.grid(row=1, column=1)
-
-    grace_box = Entry(settings_frame)
+    grace_box = Entry(settings_frame, width=5, justify=CENTER)
     grace_box.insert(0, mygrace)
     grace_box.grid(row=1, column=2)
 
     # Buttons
-    change_settings = Button(settings_frame, text="Ok", command=makechange)
-    change_settings.grid(row=4, column=1)
+    change_settings = Button(settings_frame, text="Ok", 
+        command=lambda: makechange(mydiscount, mygrace))
+    change_settings.grid(row=4, column=1, pady=10)
 
     return
 
@@ -3183,7 +3204,7 @@ def e_ledger():
 # Sail Plan creation (check out and check in).
 #
 my_user = pwd.getpwuid(os.getuid()).pw_name
-my_user = 'NPSC_Sailor' # used for testing
+#my_user = 'NPSC_Sailor' # used for testing
 
 if my_user == 'npscadmin':
     admin_state = "normal"
@@ -3234,8 +3255,6 @@ root.mainloop()
 
 
 #
-# Finally, let's close the database connection.
-# connection.close()
 #
 # End of application.
 ###########################################################
