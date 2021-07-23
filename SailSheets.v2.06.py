@@ -102,8 +102,8 @@ root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 # Sail Plan creation (check out and check in).
 #
 my_user = pwd.getpwuid(os.getuid()).pw_name
-#my_user = 'NPSC_Sailor' # used for testing
-my_user = 'npscadmin' # used for testing
+my_user = 'NPSC_Sailor' # used for testing
+#my_user = 'npscadmin' # used for testing
 
 if my_user == 'npscadmin':
     admin_state = "normal"
@@ -176,7 +176,7 @@ my_label.pack()
 
 # If the user is not the admin, then just show the sail plan menu
 if my_user != 'npscadmin':
-    sailplanmenu(root)
+    sailplan.sailplanmenu(root)
 
 root.mainloop()
 

@@ -117,7 +117,7 @@ def editpurpose(mywin):
 		# delete the tree values
 		purpose_tree.delete(*purpose_tree.get_children())
 		# repopulate the tree with the table's values
-		querypurposetable()
+		fill_tree_from_purpose_table()
 		return
 
 	#################################################################
@@ -125,8 +125,8 @@ def editpurpose(mywin):
 	# Remove the selected record and delete from the table
 	#
 	def remove_1_purpose():
-		x = boat_tree.selection()[0] # x is the index, not the actual tuple
-		boat_tree.delete(x)
+		x = purpose_tree.selection()[0] # x is the index, not the actual tuple
+		purpose_tree.delete(x)
 
 		# Open the database and create a cursor
 		db = sqlite3.connect('Sailsheets.db')
@@ -144,9 +144,9 @@ def editpurpose(mywin):
 		# delete the tree values
 		purpose_tree.delete(*purpose_tree.get_children())
 		# repopulate the tree with the table's values
-		querypurposetable()
+		fill_tree_from_purpose_table()
 
-		messagebox.showinfo("Purpose deleted!")
+		messagebox.showinfo('',"Purpose deleted!")
 		return
 
 	#################################################################
@@ -198,12 +198,12 @@ def editpurpose(mywin):
 
 		# execute the update query
 		c.execute("""UPDATE Purpose SET
-			'pname': p_name,
-			'pfee': p_fee,
-			'ptype': p_type(),
-			'pratetype': p_ratetype(),
-			'paccount': p_account(),
-			'pclubops': p_clubops() ,
+			p_name= :pname,
+			p_fee= :pfee,
+			p_type= :ptype,
+			p_ratetype= :pratetype,
+			p_account= :paccount,
+			p_clubops= :pclubops
 			WHERE p_id= :pid""",
 			{
 			'pname': p_name_e.get(),
@@ -212,7 +212,7 @@ def editpurpose(mywin):
 			'pratetype': p_ratetype_e.get(),
 			'paccount': p_account_e.get(),
 			'pclubops': p_clubops_e.get() ,
-			'pid': p_id_e.get()
+			'pid': p_id_e.get(),
 			})
 
 		# Commit the change and close the database
@@ -224,7 +224,7 @@ def editpurpose(mywin):
 		# delete the tree values
 		purpose_tree.delete(*purpose_tree.get_children())
 		# repopulate the tree with the table's values
-		querypurposetable()
+		fill_tree_from_purpose_table()
 		return
 
 	# A simple function to close frames and clear the window

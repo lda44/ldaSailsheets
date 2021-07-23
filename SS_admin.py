@@ -3,9 +3,16 @@ from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
 import sqlite3
+from pathlib import Path
 import datetime as dt
 from datetime import timedelta
 import SS_reports
+import updatemembers
+
+def clear_all_frames(mywin):
+	for stuff in mywin.winfo_children():
+		if str(stuff) != ".!menu" and str(stuff) != ".!label":
+			stuff.destroy()
 
 #####################################################################
 # Update the members table from Club Express.
@@ -18,12 +25,20 @@ def a_update_members(mywin):
 	# AllMembers.csv file that was extracted from Club Express.  
 	#
 	###################################################################
+	importpath = './Transfer/'
+	p = Path(importpath) 
+
+	if not Path(importpath).exists():
+		p.mkdir(parents=True)
+
 	mywin.allmembersfile = filedialog.askopenfilename(initialdir='./Transfer',
 		title='Open AllMembers.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)
-	if mywin.allmembersfile != 'None':
+	
+	if mywin.allmembersfile != '':
 		Success = updatemembers.UpdateMembers(mywin.allmembersfile)
+		messagebox.showinfo('', "Update completed")
 	else:
 		pass
 
@@ -138,7 +153,7 @@ def monthly_reports(mywin):
 		accept_btn.pack_forget()
 
 	#first, clear any frames that may be on the screen
-	clear_all_frames()
+	clear_all_frames(mywin)
 
 	# then create a combo box
 	month_list = ['January', 'February', 'March',

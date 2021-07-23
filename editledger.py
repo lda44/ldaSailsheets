@@ -142,9 +142,9 @@ def e_ledger(root):
 		my_tree.item(selected, text="", values=(
 			l_id_e.get(),
 			l_date_e.get(),
+			l_mid_e.get(),
 			l_name_e.get(),
 			l_skip_e.get(),
-			l_name_e.get(),
 			l_desc_e.get(),
 			l_billto_e.get(),
 			l_fee_e.get(),
@@ -171,9 +171,10 @@ def e_ledger(root):
 			WHERE ledger_id= :lid""",
 			{
 			'lid': l_id_e.get(),
-			'ldate': l_name_e.get(),
-			'lmemid': l_skip_e.get(),
+			'ldate': l_date_e.get(),
+			'lmemid': l_mid_e.get(),
 			'lname': l_name_e.get(),
+			'lskip': l_skip_e.get(),
 			'ldesc': l_desc_e.get(),
 			'lbillid': l_billto_e.get(),
 			'lfee': l_fee_e.get(),

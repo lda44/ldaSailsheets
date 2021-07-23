@@ -1,10 +1,10 @@
-	from tkinter import *
-	import sqlite3
+from tkinter import *
+import sqlite3
 
-	#####################################################################
-	# View and modify the Boats Table
-	#
-	def editboats(mywin):
+#####################################################################
+# View and modify the Boats Table
+#
+def editboats(mywin):
 
 	#################################################################
 	#
@@ -299,7 +299,7 @@
 
 	# Pick a theme
 	style.theme_use("clam") # choices are default, alt, clam, vista
-	
+
 	# Let's put a label just under the title
 	#
 	boat_label = Label(mywin, text = "Boats Table Editing", fg="red", font=("Helvetica", 18))

@@ -174,7 +174,7 @@ def editmembers(mywindow):
             m_status = :mstatus,
             m_expdate = :mexp,
             m_type = :mtype,
-            m_prime = :mprime,
+            m_prime = :mprime
             WHERE m_id= :mid""",
             {
             'mname': m_name_e.get(),
