@@ -288,10 +288,6 @@ def sailplanmenu(mywin):
 				return skip_id
 
 
-		def setskippername():
-			pass
-
-
 		def get_name(my_id):
 			if my_id == '':
 				return ''
@@ -364,7 +360,16 @@ def sailplanmenu(mywin):
 			return
 
 
-		def checkin_sailplan():
+		def checkin_sailplan(myspid):
+			#
+			# this function has to accomplish the following things:
+			# 1. record the check in time from the system time
+			# 2. compute the number of hours sailed
+			# 3. compute the fees due to NPSC based on purpose
+			# 4. compute the bill owed to MWR based on purpose
+			# 5. record the sail plan as 'closed'
+			# 6. record the crew fees due to NPSC in the ledger
+			#
 			pass
 
 
@@ -756,7 +761,7 @@ def sailplanmenu(mywin):
 		# This button closes the sailplan window and checks the boat in.
 		#
 		check_in = Button(button_frame, text="Check In", 
-			state=edit_state, command=checkin_sailplan)
+			state=edit_state, command=lambda: checkin_sailplan(mysp_id))
 		check_in.grid(row=0, column=3, padx=10, pady=10)
 
 		# This button closes the sailplan window and saves the sailplan in OPEN state,
