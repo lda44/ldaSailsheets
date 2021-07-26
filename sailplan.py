@@ -1,7 +1,8 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
-from tkcalendar import Calendar, DateEntry
+from tkcalendar import Calendar
+from tkcalendar import DateEntry
 import sqlite3
 import datetime as dt
 from datetime import timedelta
@@ -362,7 +363,7 @@ def sailplanmenu(mywin):
 
 		def checkin_sailplan(myspid):
 			#
-			# this function has to accomplish the following things:
+			# this function has to accomplish the following things for myspid:
 			# 1. record the check in time from the system time
 			# 2. compute the number of hours sailed
 			# 3. compute the fees due to NPSC based on purpose
@@ -370,7 +371,178 @@ def sailplanmenu(mywin):
 			# 5. record the sail plan as 'closed'
 			# 6. record the crew fees due to NPSC in the ledger
 			#
-			pass
+			def get_purpose_fees(mypurpose):
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""SELECT * FROM Purpose WHERE p_name= :pname""",
+					{'pname': mypurpose,})
+				purpose_fees = c.fetchone()
+				db.commit()
+				db.close()
+				return list(purpose_fees)
+	
+
+			def get_boat_rates(myboat):
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""SELECT * FROM Boats WHERE boat_name= :bname""",
+					{'bname': myboat,})
+				boat_rates = c.fetchone()
+				db.commit()
+				db.close()
+				return list(boat_rates)
+
+
+			def get_settings():
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("SELECT * FROM Settings ")
+				mysettings = c.fetchone()
+				db.commit()
+				db.close()
+				return list(mysettings)
+
+
+			def get_crew_list(spid):
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""SELECT * FROM openspcrew 
+					WHERE o_spid = :ospid""", {'ospid': spid,})
+				crewqry = c.fetchall()
+				db.commit()
+				db.close()
+				return crewqry
+
+			def get_member_details(myid):
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("SELECT * FROM Members WHERE m_id = :mid", {'mid': myid,})
+				memberdetails = c.fetchone()
+				db.commit()
+				db.close()
+				return memberdetails
+
+
+			# Get the current date/time
+			checkin_dt = dt.datetime.today().isoformat(sep=' ', timespec='seconds')
+			
+			# Query the sail plan from the table
+			sailplan = list(get_sailplan_df(myspid))
+			
+			sailplan[7] = checkin_dt
+			dt_checkin = dt.datetime.strptime(checkin_dt, '%Y-%m-%d %H:%M:%S')
+			dt_timeout = dt.datetime.strptime(sailplan[1], '%Y-%m-%d %H:%M:%S')
+			time_delta = (dt_checkin - dt_timeout) 
+			minutes_sailed = time_delta.total_seconds()/60
+			hours_sailed = time_delta.total_seconds()/60/60
+			print('\n', 'My time delta in hours: ', round(hours_sailed, 2), '\n')
+			
+			# first, check if the rental was less than the grace period
+			# 
+			grace_period = get_settings()[1]
+			print('Minutes: ', minutes_sailed, '\n', 'Grace: ', grace_period, '\n')
+
+			if minutes_sailed <= float(grace_period):
+				sailplan[8] = hours_sailed
+				sailplan[13] = 1
+				messagebox.showinfo('', 'Sail less than minimum amount, no charge.')
+				return
+
+			sailplan[8] = round(hours_sailed, 1)
+			sailplan[13] = 1
+			
+			purpose_fees = get_purpose_fees(sailplan[4])
+			boat_rates = get_boat_rates(sailplan[3])
+			crewlist = get_crew_list(myspid)
+			print('Crew List of tuples:', '\n', crewlist)
+
+			if purpose_fees[3] == 'Fixed':
+				# collect the fixed rate from the purpose table
+				#
+				sailplan[9] = round(purpose_fees[2], 2)
+				
+				# multiply total crew times fixed fee each = total collected
+				# note for ASA classes this will be zero and are collected
+				# separately when scheduled.
+				#
+				sailplan[10] = round(sailplan[12]*purpose_fees[2], 2) 
+				
+				# find the best rate
+				#
+				if hours_sailed % 24 * boat_rates[7] > boat_rates[8]: 
+					best_rate = (1 - get_settings()[0]/100) * (
+						((hours_sailed // 24 + 1) * boat_rates[8]))
+				else: 
+					best_rate = (1 - get_settings()[0]/100) * (
+						(hours_sailed % 24 * boat_rates[7]) + 
+						(hours_sailed // 24 * boat_rates[8]))
+				# total amount to be paid to MWR
+				#
+				sailplan[11] = round(best_rate, 2)
+
+			elif purpose_fees[3] == 'Hourly':
+				# create a new list and append the old list of tuples
+				# but with a computed fee for each crewmember
+				# later this will be summed by billtoid to figure out
+				# how much each member should be billed for the sail
+				#
+				crewlist_w_fee = []
+				total_fees = 0
+				mwr_bill = 0
+
+				for crew in crewlist:
+					print(crew)
+					# get member details to determine proper rate
+					crew_details = get_member_details(crew[4])
+					if crew_details[4] == 'E-5 & Below':
+						hour_col = 5
+						daily_col = 6
+					else:
+						hour_col = 7
+						daily_col = 8
+
+					#
+					# find the best rate
+					#
+					if hours_sailed % 24 * boat_rates[hour_col] > boat_rates[daily_col]: 
+						crewfee = ((1 - get_settings()[0]/100) * (
+							((hours_sailed // 24 + 1) * boat_rates[daily_col]))) / sailplan[12]
+					else: 
+						crewfee = ((1 - get_settings()[0]/100) * (
+							(hours_sailed % 24 * boat_rates[hour_col]) + 
+							(hours_sailed // 24 * boat_rates[daily_col]))) / sailplan[12]
+					
+					# need to figure out Club Ops skippers for 2 purposes that use them
+					#
+					crew_w_fee = crew + (round(crewfee, 2),)
+					print(crew_w_fee)
+					crewlist_w_fee.append(crew_w_fee)
+					total_fees += crewfee
+					mwr_bill += crewfee
+				
+				print(crewlist_w_fee)
+				print('\n', round(total_fees, 2), round(mwr_bill, 2))
+
+				# fee per person
+				#
+				sailplan[9] = round(total_fees/sailplan[12], 2)
+				
+				# total fee to be collected
+				#
+				sailplan[10] = round(total_fees, 2)
+				
+				# total amount to be paid to MWR
+				#
+				sailplan[11] = round(mwr_bill, 2)
+			else:
+				# this would be a free event
+				#
+				sailplan[9] = 0
+				sailplan[10] = 0
+				sailplan[11] = 0
+
+			print(sailplan, '\n')
+			return
 
 
 		def get_sailplan_df(myspid):
