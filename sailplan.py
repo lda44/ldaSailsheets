@@ -368,8 +368,8 @@ def sailplanmenu(mywin):
 			# 2. compute the number of hours sailed
 			# 3. compute the fees due to NPSC based on purpose
 			# 4. compute the bill owed to MWR based on purpose
-			# 5. record the sail plan as 'closed'
-			# 6. record the crew fees due to NPSC in the ledger
+			# 5. record the sail plan as 'closed' in Sailplan table
+			# 6. record the crew fees due to NPSC in the ledger table
 			#
 			def get_purpose_fees(mypurpose):
 				db = sqlite3.connect('Sailsheets.db')
@@ -413,6 +413,7 @@ def sailplanmenu(mywin):
 				db.close()
 				return crewqry
 
+
 			def get_member_details(myid):
 				db = sqlite3.connect('Sailsheets.db')
 				c = db.cursor()
@@ -422,6 +423,70 @@ def sailplanmenu(mywin):
 				db.close()
 				return memberdetails
 
+
+			def close_sailplan_record(sailplan):
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""UPDATE SailPlan set
+					sp_timeout = :spto, 
+					sp_skipper_id = :spskid, 
+					sp_sailboat = :spboat, 
+					sp_purpose = :sppurp, 
+					sp_description = :spdesc, 
+					sp_estrtntime = :speta, 
+					sp_timein = :spti, 
+					sp_hours = :sphrs, 
+					sp_feeeach = :spfee, 
+					sp_feesdue = :spdue, 
+					sp_mwrbilldue = :spbill, 
+					sp_billmembers = :spnrob, 
+					sp_completed = :spcomp
+					WHERE sp_id= :spid""",
+					{
+					'spto': sailplan[1],
+					'spskid': sailplan[2], 
+					'spboat': sailplan[3], 
+					'sppurp': sailplan[4], 
+					'spdesc': sailplan[5], 
+					'speta': sailplan[6], 
+					'spti': sailplan[7], 
+					'sphrs': sailplan[8],
+					'spfee': sailplan[9],
+					'spdue': sailplan[10],
+					'spbill': sailplan[11],
+					'spnrob': sailplan[12],
+					'spcomp': sailplan[13],
+					'spid': sailplan[0],
+					})
+				db.commit()
+				db.close()
+				return
+
+			def write_fees_to_ledger(crewlist, sailplan):
+				ledgerlist = []
+				for crew in crewlist:
+					ledgerentry = (sailplan[1][10], 
+						crew[0], 
+						crew[1],
+						crew[3],
+						sailplan[3] + ' - ' + sailplan[5],
+						0,
+						0,
+						crew[4],
+						crew[5],
+						sailplan[4],
+						sailplan[0],
+						sailplan[7][10])
+					ledgerlist.append(ledgerentry)
+
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.executemany("""INSERT INTO Ledger VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+					ledgerlist)
+				db.commit()
+				db.close()
+				return
+			
 
 			# Get the current date/time
 			checkin_dt = dt.datetime.today().isoformat(sep=' ', timespec='seconds')
@@ -435,12 +500,12 @@ def sailplanmenu(mywin):
 			time_delta = (dt_checkin - dt_timeout) 
 			minutes_sailed = time_delta.total_seconds()/60
 			hours_sailed = time_delta.total_seconds()/60/60
-			print('\n', 'My time delta in hours: ', round(hours_sailed, 2), '\n')
+			#print('\n', 'My time delta in hours: ', round(hours_sailed, 2), '\n')
 			
 			# first, check if the rental was less than the grace period
 			# 
 			grace_period = get_settings()[1]
-			print('Minutes: ', minutes_sailed, '\n', 'Grace: ', grace_period, '\n')
+			#print('Minutes: ', minutes_sailed, '\n', 'Grace: ', grace_period, '\n')
 
 			if minutes_sailed <= float(grace_period):
 				sailplan[8] = hours_sailed
@@ -454,7 +519,7 @@ def sailplanmenu(mywin):
 			purpose_fees = get_purpose_fees(sailplan[4])
 			boat_rates = get_boat_rates(sailplan[3])
 			crewlist = get_crew_list(myspid)
-			print('Crew List of tuples:', '\n', crewlist)
+			#print('Crew List of tuples:', '\n', crewlist)
 
 			if purpose_fees[3] == 'Fixed':
 				# collect the fixed rate from the purpose table
@@ -489,9 +554,9 @@ def sailplanmenu(mywin):
 				crewlist_w_fee = []
 				total_fees = 0
 				mwr_bill = 0
+				is_club_ops = purpose_fees[6] 	# 0 = no, 1 = yes
 
 				for crew in crewlist:
-					print(crew)
 					# get member details to determine proper rate
 					crew_details = get_member_details(crew[4])
 					if crew_details[4] == 'E-5 & Below':
@@ -512,16 +577,19 @@ def sailplanmenu(mywin):
 							(hours_sailed % 24 * boat_rates[hour_col]) + 
 							(hours_sailed // 24 * boat_rates[daily_col]))) / sailplan[12]
 					
-					# need to figure out Club Ops skippers for 2 purposes that use them
+					# Club Ops Skippers paid by the Club
 					#
-					crew_w_fee = crew + (round(crewfee, 2),)
-					print(crew_w_fee)
+					if is_club_ops == 1 and crew[3] == 1: 
+						crew_w_fee = crew + (0,)
+					else:
+						crew_w_fee = crew + (round(crewfee, 2),)
+						total_fees += crewfee
+
 					crewlist_w_fee.append(crew_w_fee)
-					total_fees += crewfee
 					mwr_bill += crewfee
 				
-				print(crewlist_w_fee)
-				print('\n', round(total_fees, 2), round(mwr_bill, 2))
+				#print('Crewlist of tuples w fees: ', '\n', crewlist_w_fee, '\n')
+				#print('\n', round(total_fees, 2), round(mwr_bill, 2))
 
 				# fee per person
 				#
@@ -537,11 +605,23 @@ def sailplanmenu(mywin):
 			else:
 				# this would be a free event
 				#
-				sailplan[9] = 0
-				sailplan[10] = 0
-				sailplan[11] = 0
+				sailplan[9] = 0 	# fee per person
+				sailplan[10] = 0 	# total collected by NPSC
+				sailplan[11] = 0 	# total due to MWR
 
-			print(sailplan, '\n')
+			#print('Sailplan to be written: ', '\n', sailplan, '\n')
+
+			# At this point we have:
+			# 1. sailplan list of fields that needs to be written to the sailplan table
+			# 2. Crew list of tuples w fees that needs to be written to the ledger
+			close_sailplan_record(sailplan)
+			write_fees_to_ledger(crewlist_w_fee, sailplan)
+
+			# now close the window and return to the screen
+			sp_win.destroy()
+
+			# repopulate the tree with the table's values
+			q_sp_table(dt.datetime.today())
 			return
 
 
@@ -838,7 +918,7 @@ def sailplanmenu(mywin):
 		sp_skid_e.grid(row=1, column=1, sticky=W)
 		sp_skid_e.focus()
 		skip_n_combo = ttk.Combobox(sailplan_frame, value=memberlist)
-		#skip_n_combo.insert()
+		if new != 1: skip_n_combo.set(name_dict[float(mysailplan[2])])
 		skip_n_combo.grid(row=1, column=2, padx=10)
 
 		sp_purp_l = Label(sailplan_frame, text="Purpose:")
@@ -872,6 +952,7 @@ def sailplanmenu(mywin):
 		sp_ti_l = Label(sailplan_frame, text="Time Checked In:")
 		sp_ti_l.grid(row=2, column=3, columnspan=2, sticky=W)
 		sp_ti_e = Entry(sailplan_frame, width=20, justify=LEFT, state='normal')
+		if new != 1: sp_ti_e.insert(0, mysailplan[7])
 		sp_ti_e.grid(row=3, column=3, columnspan=2, sticky=W)
 
 		# Third line of entries:
