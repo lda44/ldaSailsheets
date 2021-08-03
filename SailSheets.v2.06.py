@@ -59,128 +59,138 @@ from tkcalendar import Calendar, DateEntry
 import sqlite3
 import datetime as dt
 from datetime import timedelta
+import logging
 import os
 import pwd
 
 # next import the separate modules of the Sailsheets app
-import SS_db_functions
-import SS_reports
 import SS_admin
-import updatemembers
+import SS_db_functions
 import editmembers
 import editboats
 import editpurpose
 import editledger
 import LiabilityWaiver
+import SS_reports
 import sailplan
+import updatemembers
+
+def main():
+    # Insert the Main code here
+    # Declare any global variables -- need to eliminate global variables
+    global root
+
+    # Set up the logging system
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+    file_handler = logging.FileHandler(__name__ + '.log')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    # Start with the main window (aka root)
+    root = Tk()
+    root.title("Welcome to Sailsheets")
+
+    # set the default window size
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    app_width = int((screen_width / 2) * .70)
+    app_height = int(screen_height * .80)
+
+    x = (screen_width / 4) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
+    y = (screen_height / 2) - (app_height / 2)
+
+    root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+
+    # Deterime if the user is NPSC_Admin or NPSC_Sailor.
+    # 
+    # if the user is NPSC_Admin then all the menus are enabled.  
+    # Otherwise the menus are disabled and the only function is the
+    # Sail Plan creation (check out and check in).
+    #
+    my_user = pwd.getpwuid(os.getuid()).pw_name
+    my_user = 'NPSC_Sailor' # used for testing
+    #my_user = 'npscadmin' # used for testing
+    logger.info(my_user + ' logged in')
+        
+    if my_user == 'npscadmin':
+        admin_state = "normal"
+        main_banner = "ADMIN -- Navy Patuxent Sailing Club -- ADMIN"
+        main_color = "blue"
+    else:
+        admin_state = "disabled"
+        main_banner = "Navy Patuxent Sailing Club"
+        main_color = "blue"
 
 
-# Insert the Main code here
-# Declare any global variables -- need to eliminate global variables
-global root
+    # Create our menus
+    my_menu = Menu(root)
+    root.config(menu=my_menu)
 
 
-# Start with the main window (aka root)
-root = Tk()
-root.title("Welcome to Sailsheets")
+    # Creae menu items
+    # File menu just contains the exit command
+    file_menu = Menu(my_menu)
+    my_menu.add_cascade(label="File", menu=file_menu)
+    file_menu.add_command(label="Exit", command=root.quit)
 
-# set the default window size
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-app_width = int((screen_width / 2) * .70)
-app_height = int(screen_height * .80)
+    # Admin menu are those admin items that are gross updates
+    admin_menu = Menu(my_menu)
+    my_menu.add_cascade(label="Admin", menu=admin_menu, state=admin_state)
 
-x = (screen_width / 4) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
-y = (screen_height / 2) - (app_height / 2)
+    admin_menu.add_command(label="Update Membership", 
+        command=lambda: SS_admin.a_update_members(root))
 
-root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
-
-# Deterime if the user is NPSC_Admin or NPSC_Sailor.
-# 
-# if the user is NPSC_Admin then all the menus are enabled.  
-# Otherwise the menus are disabled and the only function is the
-# Sail Plan creation (check out and check in).
-#
-my_user = pwd.getpwuid(os.getuid()).pw_name
-my_user = 'NPSC_Sailor' # used for testing
-#my_user = 'npscadmin' # used for testing
-
-if my_user == 'npscadmin':
-    admin_state = "normal"
-    main_banner = "ADMIN -- Navy Patuxent Sailing Club -- ADMIN"
-    main_color = "blue"
-else:
-    admin_state = "disabled"
-    main_banner = "Navy Patuxent Sailing Club"
-    main_color = "blue"
+    admin_menu.add_command(label="Backup ALL to Excel", 
+        command=lambda: SS_db_functions.export_excel())
 
 
-# Create our menus
-my_menu = Menu(root)
-root.config(menu=my_menu)
+    # Edit menu are those admin items that "edit" single records
+    edit_menu = Menu(my_menu)
+    my_menu.add_cascade(label="Edit", menu=edit_menu, state=admin_state)
+
+    edit_menu.add_command(label="Boats", 
+        command=lambda: editboats.editboats(root))
+
+    edit_menu.add_command(label="Sail Plan Purpose", 
+        command=lambda: editpurpose.editpurpose(root))
+
+    edit_menu.add_command(label="Member Data", 
+        command=lambda: editmembers.editmembers(root))
+
+    edit_menu.add_command(label="Settings", 
+        command=lambda: SS_admin.editsettings(root))
+
+    edit_menu.add_separator()
+
+    edit_menu.add_command(label="Sail Plans", 
+        command=lambda: sailplan.sailplanmenu(root))
+
+    edit_menu.add_command(label="Ledger Table (raw)", 
+        command=lambda: editledger.e_ledger(root))
 
 
-# Creae menu items
-# File menu just contains the exit command
-file_menu = Menu(my_menu)
-my_menu.add_cascade(label="File", menu=file_menu)
-file_menu.add_command(label="Exit", command=root.quit)
-
-# Admin menu are those admin items that are gross updates
-admin_menu = Menu(my_menu)
-my_menu.add_cascade(label="Admin", menu=admin_menu, state=admin_state)
-
-admin_menu.add_command(label="Update Membership", 
-    command=lambda: SS_admin.a_update_members(root))
-
-admin_menu.add_command(label="Backup ALL to Excel", 
-    command=lambda: SS_db_functions.export_excel())
+    # These are the monthly reports
+    reports_menu = Menu(my_menu)
+    my_menu.add_cascade(label="Reports", menu=reports_menu, state=admin_state)
+    reports_menu.add_command(label="Create Monthly Reports", 
+        command=lambda: SS_admin.monthly_reports(root))
 
 
-# Edit menu are those admin items that "edit" single records
-edit_menu = Menu(my_menu)
-my_menu.add_cascade(label="Edit", menu=edit_menu, state=admin_state)
-
-edit_menu.add_command(label="Boats", 
-    command=lambda: editboats.editboats(root))
-
-edit_menu.add_command(label="Sail Plan Purpose", 
-    command=lambda: editpurpose.editpurpose(root))
-
-edit_menu.add_command(label="Member Data", 
-    command=lambda: editmembers.editmembers(root))
-
-edit_menu.add_command(label="Settings", 
-    command=lambda: SS_admin.editsettings(root))
-
-edit_menu.add_separator()
-
-edit_menu.add_command(label="Sail Plans", 
-    command=lambda: sailplan.sailplanmenu(root))
-
-edit_menu.add_command(label="Ledger Table (raw)", 
-    command=lambda: editledger.e_ledger(root))
+    # Let's put a label at the top of the window
+    my_label = Label(root, text = main_banner, fg=main_color, font=("Helvetica", 24))
+    my_label.pack()
 
 
-# These are the monthly reports
-reports_menu = Menu(my_menu)
-my_menu.add_cascade(label="Reports", menu=reports_menu, state=admin_state)
-reports_menu.add_command(label="Create Monthly Reports", 
-    command=lambda: SS_admin.monthly_reports(root))
+    # If the user is not the admin, then just show the sail plan menu
+    if my_user != 'npscadmin':
+        sailplan.sailplanmenu(root)
 
+    root.mainloop()
 
-# Let's put a label at the top of the window
-my_label = Label(root, text = main_banner, fg=main_color, font=("Helvetica", 24))
-my_label.pack()
-
-
-# If the user is not the admin, then just show the sail plan menu
-if my_user != 'npscadmin':
-    sailplan.sailplanmenu(root)
-
-root.mainloop()
-
-
+if __name__ == '__main__':
+    main()
 #
 #
 # End of application.

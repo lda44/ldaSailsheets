@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkcalendar import Calendar
 from tkcalendar import DateEntry
+import logging
 import sqlite3
 import datetime as dt
 from datetime import timedelta
@@ -22,13 +23,21 @@ def sailplanmenu(mywin):
 	# -- add guests
 	# -- delete crewmembers or guests
 	# - Delete an open sailplan and its crewlist
+	# - Close a sailplan & post to the Ledger File
 	# 
 	# Things that don't work:
-	# - Close a sailplan & post to the Ledger File
 	# - Disabling fields we don't want user to change
 	# 
 	# 
-	
+
+	# Set up the logging system
+	logger = logging.getLogger(__name__)
+	logger.setLevel(logging.DEBUG)
+	formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+	file_handler = logging.FileHandler(__name__ + '.log')
+	file_handler.setFormatter(formatter)
+	logger.addHandler(file_handler)
+
 	#################################################################
 	# Common functions are here
 	#
@@ -94,7 +103,7 @@ def sailplanmenu(mywin):
 		# commit and close the DB
 		db.commit()
 		db.close()
-		
+		logger.info('Sailplan table queried.')
 		return
 
 	#################################################################
@@ -124,6 +133,10 @@ def sailplanmenu(mywin):
 	# Select the record you picked
 	#
 	def select_record(e):
+
+		# change the edit state
+		delrecord.config(state='normal')
+		editrecord.config(state='normal')
 		
 		# Grab the record number
 		selected = my_tree.focus()
@@ -133,6 +146,34 @@ def sailplanmenu(mywin):
 		return [values[0], values[9]]
 
 		
+	#################################################################
+	# 
+	# Select the record you picked
+	#
+	def _record(e):
+		
+		# Grab the record number
+		selected = my_tree.focus()
+
+		# Grab record values
+		values = my_tree.item(selected, 'values')
+		return [values[0], values[9]]
+
+		
+	#################################################################
+	# 
+	# Select the record you picked
+	#
+	def edit_this_record(e):
+		
+		# Grab the record number
+		selected = my_tree.focus()
+
+		# Grab record values
+		values = my_tree.item(selected, 'values')
+		add_edit_record([values[0], values[9]])
+
+
 	#################################################################
 	# 
 	# Add or edit the sail plan
@@ -168,6 +209,7 @@ def sailplanmenu(mywin):
 		"""
 
 		# test using any sp_id > 3550
+		logger.info('Sailplan edited.')
 
 		#########################################################
 		# Begin internal "add or edit a sailplan" functions here
@@ -195,24 +237,29 @@ def sailplanmenu(mywin):
 		def getcrewlist(spid):
 			#
 			# Open the db and establish a cursor
-			db = sqlite3.connect('Sailsheets.db')
-			c = db.cursor()
-			c.execute("""CREATE TABLE IF NOT EXISTS "openspcrew"(o_id real, 
-				o_name text,
-				o_spid int,
-				o_skipper int,
-				o_billtoid real
-				)
-				""")
-			# query to pull the data from the table
-			c.execute("""SELECT o_id, o_name, o_billtoid FROM openspcrew 
-				WHERE o_spid = :ospid ORDER BY o_name""", {'ospid': spid,})
-			# fetch the data
-			crewqry = c.fetchall()
-			# commit and close the DB
-			db.commit()
-			db.close()
-			return crewqry
+			try:
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""CREATE TABLE IF NOT EXISTS "openspcrew"(o_id real, 
+					o_name text,
+					o_spid int,
+					o_skipper int,
+					o_billtoid real
+					)
+					""")
+				# query to pull the data from the table
+				c.execute("""SELECT o_id, o_name, o_billtoid FROM openspcrew 
+					WHERE o_spid = :ospid ORDER BY o_name""", {'ospid': spid,})
+				# fetch the data
+				crewqry = c.fetchall()
+				# commit and close the DB
+				db.commit()
+				db.close()
+				logger.info('Crew table queried.')
+			except:
+				logger.exception('Tried to access open sailplan crew list.')
+			else:
+				return crewqry
 
 
 
@@ -588,8 +635,8 @@ def sailplanmenu(mywin):
 					crewlist_w_fee.append(crew_w_fee)
 					mwr_bill += crewfee
 				
-				#print('Crewlist of tuples w fees: ', '\n', crewlist_w_fee, '\n')
-				#print('\n', round(total_fees, 2), round(mwr_bill, 2))
+				logger.debug('Crewlist of tuples w fees: ', '\n', crewlist_w_fee, '\n')
+				logger.debug('\n', round(total_fees, 2), round(mwr_bill, 2))
 
 				# fee per person
 				#
@@ -609,7 +656,7 @@ def sailplanmenu(mywin):
 				sailplan[10] = 0 	# total collected by NPSC
 				sailplan[11] = 0 	# total due to MWR
 
-			#print('Sailplan to be written: ', '\n', sailplan, '\n')
+			logger.debug('Sailplan to be written: ', '\n', sailplan, '\n')
 
 			# At this point we have:
 			# 1. sailplan list of fields that needs to be written to the sailplan table
@@ -753,6 +800,7 @@ def sailplanmenu(mywin):
 				db.commit()
 				db.close()
 			sp_win.destroy()
+			return
 
 
 		def select_crew(event):
@@ -1069,7 +1117,7 @@ def sailplanmenu(mywin):
 			my_tree.delete(*my_tree.get_children())
 			# repopulate the tree with the table's values
 			q_sp_table(dt.date.fromisoformat(my_date))
-
+			logger.info('Sail Plan ' + str(mysp_id) + ' deleted.')
 			messagebox.showinfo('', "Sail Plan Deleted!")
 		else:
 			messagebox.showinfo('', "Sail Plan Complete, cannot delete!")
@@ -1078,8 +1126,8 @@ def sailplanmenu(mywin):
 	
 	# Create binding click function
 	#
-	def clicker(e):
-		myinfo = select_record(e)
+	#def clicker(e):
+	#	myinfo = select_record(e)
 
 
 	def datepicker():
@@ -1142,11 +1190,13 @@ def sailplanmenu(mywin):
 	addrecord.grid(row=0, column=1, padx=10, pady=5)
 	#addrecord.focus()
 
-	delrecord = Button(button_frame, text="Delete Sail Plan", command=remove_1_record)
+	delrecord = Button(button_frame, text="Delete Sail Plan", 
+		state='disabled',
+		command=remove_1_record)
 	delrecord.grid(row=0, column=2, padx=10, pady=5)
 
 	editrecord = Button(button_frame, text="Edit Sail Plan", 
-		state='normal',
+		state='disabled',
 		command=lambda: add_edit_record(select_record(0)[0], select_record(0)[1]))
 	editrecord.grid(row=0, column=3, columnspan=5, sticky=E, padx=10, pady=5)
 
@@ -1224,6 +1274,7 @@ def sailplanmenu(mywin):
 	#
 	cal.bind("<ButtonRelease-1>", datepicker)
 	my_tree.bind("<ButtonRelease-1>", select_record)
+	my_tree.bind("<Double-Button-1>", edit_this_record)
 
 	return
 	

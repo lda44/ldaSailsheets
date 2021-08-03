@@ -2,12 +2,22 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
+import logger
 import sqlite3
 from pathlib import Path
 import datetime as dt
 from datetime import timedelta
+
 import SS_reports
 import updatemembers
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 def clear_all_frames(mywin):
 	for stuff in mywin.winfo_children():
@@ -38,6 +48,7 @@ def a_update_members(mywin):
 	
 	if mywin.allmembersfile != '':
 		Success = updatemembers.UpdateMembers(mywin.allmembersfile)
+		logger.info(mywin.allmembersfile + ' imported to Members Table.')
 		messagebox.showinfo('', "Update completed")
 	else:
 		pass
@@ -72,10 +83,11 @@ def editsettings(mywin):
 				(new_discount, new_grace))
 			db.commit()
 			db.close()
+			logger.info('Settings changed.')
 			settings_frame.destroy()
 		else:
 			settings_frame.destroy()
-			return
+		return
 
 	#first, clear any frames that may be on the screen
 	for stuff in mywin.winfo_children():
@@ -148,6 +160,7 @@ def monthly_reports(mywin):
 		Report2 = SS_reports.ReportUsage(mymonth, myyear, 0)
 		Report3 = SS_reports.ReportMemberUse(mymonth, myyear)
 
+		logger.info('Reports for ' + str(mymonth) + '-' + str(myyear) + ' created.')
 		mo_combo.pack_forget()
 		yr_combo.pack_forget()
 		accept_btn.pack_forget()
