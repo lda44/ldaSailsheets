@@ -8,11 +8,21 @@
 #
 #####################################################################
 
+import logging
 import sqlite3
 import datetime 
 from pathlib import Path
 from datetime import date
 import csv
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 global mymonth, myyear
 
@@ -243,6 +253,7 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
 
     db.commit()
     db.close()
+    logger.info('Executed reportusage ' + str(NPSCOnly) + ' (1=NPSC only)')
 
 def ReportMemberUse(mymonth, myyear):
     d = datetime.date(day=1, month=mymonth, year=myyear)
@@ -387,3 +398,4 @@ def ReportMemberUse(mymonth, myyear):
 
     db.commit()
     db.close()
+    logger.info('Executed ReportMemberUse report.')

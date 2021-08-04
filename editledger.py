@@ -5,8 +5,21 @@
 #
 # this should be used very rarely.
 #
-import sqlite3
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter import messagebox
+import logging
+import sqlite3
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 def e_ledger(root):
     #################################################################
@@ -72,6 +85,7 @@ def e_ledger(root):
 		# commit and close the DB
 		db.commit()
 		db.close()
+		logger.info('Updated the ledger tree.')
 		return
 
 	#################################################################
@@ -185,6 +199,7 @@ def e_ledger(root):
 		# Commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Updated the ledger table.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -202,6 +217,8 @@ def e_ledger(root):
 	#################################################################
 	# Start the function code here
 	#
+	logger.info('Entered the editledger module.')
+
 	global my_tree
 
 	#first, clear any frames that may be on the screen

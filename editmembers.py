@@ -3,7 +3,20 @@
 # Edit the members table
 #
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter import messagebox
+import logging
 import sqlite3
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 def editmembers(mywindow):
     #################################################################
@@ -66,6 +79,8 @@ def editmembers(mywindow):
         # commit and close the DB
         db.commit()
         db.close()
+        logger.info('Updated the member tree.')
+        return
 
     #################################################################
     # 
@@ -114,6 +129,7 @@ def editmembers(mywindow):
         # commit the change and close the database
         db.commit()
         db.close()
+        logger.info('Added a member to the table.')
 
         # now clear the entry boxes
         clearboxes()
@@ -188,6 +204,7 @@ def editmembers(mywindow):
         # Commit the change and close the database
         db.commit()
         db.close()
+        logger.info('Updated a member record.')
 
         # now clear the entry boxes
         clearboxes()
@@ -212,7 +229,8 @@ def editmembers(mywindow):
     #################################################################
     # Start the function code here
     #
-    from tkinter import ttk
+    logger.info('Entered the editmembers module.')
+
     global member_tree
 
     # Add the style for the editing window

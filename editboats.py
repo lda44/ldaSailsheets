@@ -1,5 +1,17 @@
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter import messagebox
+import logging
 import sqlite3
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 #####################################################################
 # View and modify the Boats Table
@@ -61,6 +73,7 @@ def editboats(mywin):
 		# commit and close the DB
 		db.commit()
 		db.close()
+		logger.info('Boat Tree updated.')
 
 	#################################################################
 	# 
@@ -132,6 +145,7 @@ def editboats(mywin):
 		# commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Added a new boat.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -159,6 +173,7 @@ def editboats(mywin):
 		# Commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Deleted a boat.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -170,19 +185,6 @@ def editboats(mywin):
 		messagebox.showinfo("Boat deleted!")
 		return
 
-	#################################################################
-	# 
-	# Delete multiple records and remove them from the boats table
-	#
-	# Not used in this function but may be added in future
-	#
-	def remove_selected_boats():
-		x = boat_tree.selection()
-		for record in x:
-			boat_tree.delete(record)
-		refreshtreeview()
-		return
-		
 	#################################################################
 	# 
 	# Select the record you picked
@@ -272,6 +274,7 @@ def editboats(mywin):
 		# Commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Updated a boat record.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -289,6 +292,7 @@ def editboats(mywin):
 	#################################################################
 	# Start the function code here
 	#
+	logger.info('Entered the editboats module.')
 	global boat_tree
 
 	#first, clear any frames that may be on the screen

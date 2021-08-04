@@ -5,11 +5,23 @@
 #
 
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
 from tkinter import messagebox
-import sqlite3
 import datetime 
 from pathlib import Path
 import csv
+import logging
+import sqlite3
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 def export_excel():
         # This function simply exports each of the tables into separate .csv files 
@@ -47,6 +59,7 @@ def export_excel():
     # commit the command and close the db
     db.commit()
     db.close()
+    logger.info('All tables exported to backup folder.')
     messagebox.showinfo('', "All tables exported to backup folder.")
 
 

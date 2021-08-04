@@ -1,5 +1,17 @@
 from tkinter import *
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter import messagebox
+import logging
 import sqlite3
+
+# Set up the logging system
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
+file_handler = logging.FileHandler(__name__ + '.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 #####################################################################
 # View and modify the Sail Plan Purpose Table
@@ -59,6 +71,7 @@ def editpurpose(mywin):
 		# commit and close the DB
 		db.commit()
 		db.close()
+		logger.info('Updated the Purpose Tree from the table.')
 		return
 
 	#################################################################
@@ -111,6 +124,7 @@ def editpurpose(mywin):
 		# commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Added a new purpose.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -138,6 +152,7 @@ def editpurpose(mywin):
 		# Commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Deleted a purpose record.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -218,6 +233,7 @@ def editpurpose(mywin):
 		# Commit the change and close the database
 		db.commit()
 		db.close()
+		logger.info('Updated a Purpose record in the table.')
 
 		# now clear the entry boxes
 		clearboxes()
@@ -243,6 +259,8 @@ def editpurpose(mywin):
 	#################################################################
 	# Start the function code here
 	#
+	logger.info('Entered the editpurpose module.')
+	
 	global purpose_tree
 
 	#first, clear any frames that may be on the screen

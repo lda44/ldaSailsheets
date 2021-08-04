@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter import messagebox
-import logger
+import logging
 import sqlite3
 from pathlib import Path
 import datetime as dt
