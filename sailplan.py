@@ -171,7 +171,8 @@ def sailplanmenu(mywin):
 
 		# Grab record values
 		values = my_tree.item(selected, 'values')
-		add_edit_record([values[0], values[9]])
+		logger.info('Edit sailplan: #' + str(values[0]) + ' | Closed=' + str(values[9]))
+		add_edit_record(values[0], values[9])
 
 
 	#################################################################
@@ -209,7 +210,7 @@ def sailplanmenu(mywin):
 		"""
 
 		# test using any sp_id > 3550
-		logger.info('Sailplan edited.')
+		logger.info('Sailplan ' + str(mysp_id) + ' edited.')
 
 		#########################################################
 		# Begin internal "add or edit a sailplan" functions here
@@ -255,7 +256,7 @@ def sailplanmenu(mywin):
 				# commit and close the DB
 				db.commit()
 				db.close()
-				logger.info('Crew table queried.')
+				logger.info('Crew table queried for sailplan ' + str(spid) + '.')
 			except:
 				logger.exception('Tried to access open sailplan crew list.')
 			else:
@@ -569,9 +570,22 @@ def sailplanmenu(mywin):
 			#print('Crew List of tuples:', '\n', crewlist)
 
 			if purpose_fees[3] == 'Fixed':
+				crewlist_w_fee = []
+				is_club_ops = purpose_fees[6] 	# 0 = no, 1 = yes
+
 				# collect the fixed rate from the purpose table
 				#
 				sailplan[9] = round(purpose_fees[2], 2)
+				
+				for crew in crewlist:
+					# Club Ops Skippers paid by the Club
+					#
+					if is_club_ops == 1 and crew[3] == 1: 
+						crew_w_fee = crew + (0,)
+					else:
+						crew_w_fee = crew + (sailplan[9],)
+
+					crewlist_w_fee.append(crew_w_fee)
 				
 				# multiply total crew times fixed fee each = total collected
 				# note for ASA classes this will be zero and are collected
@@ -635,9 +649,6 @@ def sailplanmenu(mywin):
 					crewlist_w_fee.append(crew_w_fee)
 					mwr_bill += crewfee
 				
-				logger.debug('Crewlist of tuples w fees: ', '\n', crewlist_w_fee, '\n')
-				logger.debug('\n', round(total_fees, 2), round(mwr_bill, 2))
-
 				# fee per person
 				#
 				sailplan[9] = round(total_fees/sailplan[12], 2)
@@ -652,11 +663,16 @@ def sailplanmenu(mywin):
 			else:
 				# this would be a free event
 				#
+				crewlist_w_fee = []
+				for crew in crewlist:
+					crew_w_fee = crew + (0,)
+					crewlist_w_fee.append(crew_w_fee)
+				
 				sailplan[9] = 0 	# fee per person
 				sailplan[10] = 0 	# total collected by NPSC
 				sailplan[11] = 0 	# total due to MWR
 
-			logger.debug('Sailplan to be written: ', '\n', sailplan, '\n')
+			logger.debug('Sailplan closed & written to ledger: ' + str(sailplan[0]))
 
 			# At this point we have:
 			# 1. sailplan list of fields that needs to be written to the sailplan table
@@ -840,6 +856,16 @@ def sailplanmenu(mywin):
 		#mysp_id = -1 # -1 = new sailplan, all others are edit to existing sailplan
 		#sp_closed = 0 # 1 = the sailplan is closed, 0 = the sailplan is still open
 		#
+		if sp_closed == '1': # the sail plan is closed so read only for the fields
+			edit_state = 'disabled'
+			add_state = 'disabled'
+			new = 0
+		else:
+			edit_state = 'normal'
+			add_state = 'normal'
+			new = 0
+
+
 		if mysp_id == -1:
 			if messagebox.askokcancel(LiabilityWaiver.w_header, LiabilityWaiver.w_title) != 1:
 				return
@@ -847,11 +873,9 @@ def sailplanmenu(mywin):
 			#
 			mysp_id = newblanksailplan()
 			new = 1 # this is a new record, used when canceling
-			edit_state = "disabled"
-			add_state = "disabled"
-		else:
 			edit_state = "normal"
-			new = 0
+			add_state = "normal"
+
 
 		# Create a new window
 		sp_win = Tk()
@@ -958,6 +982,7 @@ def sailplanmenu(mywin):
 		boat_combo = ttk.Combobox(sailplan_frame, value=myboatlist)
 		boat_combo.insert(0, mysailplan[3])
 		boat_combo.grid(row=1, column=0, padx=10)
+		boat_combo.config(state=edit_state)
 
 		sp_skid_l = Label(sailplan_frame, text="Skipper Club # and Name:")
 		sp_skid_l.grid(row=0, column=1, sticky=W, columnspan=2)
@@ -965,9 +990,11 @@ def sailplanmenu(mywin):
 		sp_skid_e.insert(0, mysailplan[2])
 		sp_skid_e.grid(row=1, column=1, sticky=W)
 		sp_skid_e.focus()
+		sp_skid_e.config(state=edit_state)
 		skip_n_combo = ttk.Combobox(sailplan_frame, value=memberlist)
 		if new != 1: skip_n_combo.set(name_dict[float(mysailplan[2])])
 		skip_n_combo.grid(row=1, column=2, padx=10)
+		skip_n_combo.config(state=edit_state)
 
 		sp_purp_l = Label(sailplan_frame, text="Purpose:")
 		sp_purp_l.grid(row=0, column=3, sticky=W)
@@ -975,6 +1002,7 @@ def sailplanmenu(mywin):
 		purp_combo.insert(0, mysailplan[4])
 		#purp_combo.current(8) # Rec sailing?
 		purp_combo.grid(row=1, column=3)
+		purp_combo.config(state=edit_state)
 
 		# Second line of entries:
 		#
@@ -984,8 +1012,8 @@ def sailplanmenu(mywin):
 		if new == 1:
 			sp_to_e.insert(0, dt.datetime.today().isoformat(sep=' ', timespec='seconds'))
 		else: sp_to_e.insert(0, mysailplan[1])
-		sp_to_e.config(disabledforeground="black", readonlybackground='white')
 		sp_to_e.grid(row=3, column=0, columnspan=2, sticky=W, padx=10)
+		sp_to_e.config(state='disabled')
 		
 		sp_eta_l = Label(sailplan_frame, text="Est Return Time:")
 		sp_eta_l.grid(row=2, column=1, columnspan=2, sticky=W)
@@ -996,12 +1024,14 @@ def sailplanmenu(mywin):
 			# add 4 hours by default
 		else: sp_eta_e.insert(0, mysailplan[6])
 		sp_eta_e.grid(row=3, column=1, columnspan=2, sticky=W)
+		sp_eta_e.config(state=edit_state)
 
 		sp_ti_l = Label(sailplan_frame, text="Time Checked In:")
 		sp_ti_l.grid(row=2, column=3, columnspan=2, sticky=W)
 		sp_ti_e = Entry(sailplan_frame, width=20, justify=LEFT, state='normal')
 		if new != 1: sp_ti_e.insert(0, mysailplan[7])
 		sp_ti_e.grid(row=3, column=3, columnspan=2, sticky=W)
+		sp_ti_e.config(state=edit_state)
 
 		# Third line of entries:
 		#
@@ -1010,6 +1040,7 @@ def sailplanmenu(mywin):
 		sp_desc_e = Entry(sailplan_frame, justify=LEFT, width=55)
 		sp_desc_e.insert(0, mysailplan[5])
 		sp_desc_e.grid(row=4, column=1, columnspan=3, sticky=W)
+		sp_desc_e.config(state=edit_state)
 
 		# Add Club Member frame and entry boxes
 		#

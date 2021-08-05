@@ -61,5 +61,29 @@ def export_excel():
     db.close()
     logger.info('All tables exported to backup folder.')
     messagebox.showinfo('', "All tables exported to backup folder.")
+    return
 
+############################################
+#
+# This next bit of code runs at import of this module and simply
+# makes a backup of the db if one does not exist.
+# 
+# Future version will figure out the date of the file and if less
+# than 5 days not make a backup.
+#
+today = datetime.date.today()
 
+backuppath = './Backups/' + str(today.year)
+p = Path(backuppath) 
+
+if not Path(backuppath).exists():
+    p.mkdir(parents=True)
+
+if Path(backuppath + '/' + str(today) + '_' + 'Backup.db').is_file():
+    logger.info('Recent backup file exists.')
+else:
+    logger.info('Backup file started.')
+    primedb = sqlite3.connect('Sailsheets.db')
+    backupdb = sqlite3.connect(backuppath + '/' + str(today) + '_' + 'Backup.db')
+    primedb.backup(backupdb)
+    logger.info('Backup file completed.')
