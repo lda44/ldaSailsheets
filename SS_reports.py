@@ -102,6 +102,7 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
             JOIN Boats on SailPlan.sp_sailboat=Boats.boat_Name
             ORDER BY boatclass, Sailboat, purpose, l_date
             """)
+        logger.info('Fetched data for NPSC Usage.')
     else:
         c.execute("""SELECT Boats.boat_class AS boatclass, SailPlan.sp_sailboat as Sailboat, ledger_id, 
             l_date, l_member_id, l_name, l_skipper, SailPlan.sp_purpose AS purpose, Ledger.l_sp_id, 
@@ -112,6 +113,7 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
             WHERE SailPlan.sp_sailboat!='Skyline'
             ORDER BY boatclass, Sailboat, purpose, l_date
             """)
+        logger.info('Fetched data for MWR Usage.')
         
     usagetable = c.fetchall()
         
@@ -128,14 +130,17 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
             "Purpose", "Sailplan ID", "Hours", "Revenue"])
         #w.writerow([" "])
         
-        hrs_subsubtotal = 0
-        hrs_subtotal = 0
-        hrs_classtotal = 0
-        hrs_grandtotal = 0
-        revenue_subsubtotal = 0
-        revenue_subtotal = 0
-        revenue_classtotal = 0
-        revenue_grandtotal = 0
+        # Set the totals to zero 
+        #
+        hrs_purpose_total = 0
+        hrs_boat_total = 0
+        hrs_class_total = 0
+        hrs_grand_total = 0
+        revenue_purpose_total = 0
+        revenue_boat_total = 0
+        revenue_class_total = 0
+        revenue_grand_total = 0
+
         for record in usagetable:
             myrow = ([' ', ' ', 
                 str(record[2]), 
@@ -153,13 +158,18 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
                     and mydate.month == mymonth 
                     and mydate.year == myyear 
                     and record[6] == 1):
+                
+                hrs_purpose_total += record[9]
+                hrs_boat_total += record[9]
+                hrs_class_total += record[9]
+                hrs_grand_total += record[9]
+                revenue_purpose_total += record[10]
+                revenue_boat_total += record[10]
+                revenue_class_total += record[10]
+                revenue_grand_total += record[10]
+                #
                 w.writerow(myrow)
-                hrs_subsubtotal += record[9]
-                revenue_subsubtotal += record[10]
-                hrs_subtotal += record[9]
-                revenue_subtotal += record[10]
-                hrs_classtotal += record[9]
-                revenue_classtotal += record[10]
+                #
             elif (boatclass == record[0] 
                     and boat == record[1] 
                     and boatpurpose != record[7] 
@@ -167,62 +177,68 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
                     and mydate.year == myyear 
                     and record[6] == 1):
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Purpose Subsubtotal:", 
-                    str(round(hrs_subsubtotal,1)), 
-                    str(round(revenue_subsubtotal, 2))])
+                    str(round(hrs_purpose_total,1)), 
+                    str(round(revenue_purpose_total, 2))])
                 w.writerow([" "])
                 boatpurpose = record[7]
                 w.writerow([" ", boat, "Ledger ID", "Date of sail", "Skipper ID", "Skipper", 
                     "Purpose", "Sailplan ID", "Hours", "Revenue"])
-                hrs_grandtotal += hrs_subtotal
-                revenue_grandtotal += revenue_subtotal
-                hrs_subtotal += record[9]
-                revenue_subtotal += record[10]
-                hrs_subsubtotal = record[9]
-                revenue_subsubtotal = record[10]
-                hrs_classtotal += record[9]
-                revenue_classtotal += record[10]
+                
+                hrs_purpose_total = record[9]
+                hrs_boat_total += record[9]
+                hrs_class_total += record[9]
+                hrs_grand_total += record[9]
+                revenue_purpose_total = record[10]
+                revenue_boat_total += record[10]
+                revenue_class_total += record[10]
+                revenue_grand_total += record[10]
+                
                 w.writerow(myrow)
+                #
             elif (boatclass == record[0] 
                     and boat != record[1] 
                     and mydate.month == mymonth 
                     and mydate.year == myyear 
                     and record[6] == 1):
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Purpose Subsubtotal:", 
-                    str(round(hrs_subsubtotal,1)), 
-                    str(round(revenue_subsubtotal, 2))])
+                    str(round(hrs_purpose_total,1)), 
+                    str(round(revenue_purpose_total, 2))])
                 w.writerow([" "])
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Subtotal:", 
-                    str(round(hrs_subtotal,1)), 
-                    str(round(revenue_subtotal, 2))])
+                    str(round(hrs_boat_total,1)), 
+                    str(round(revenue_boat_total, 2))])
                 w.writerow([" "])
                 boat = record[1]
                 boatpurpose = record[7]
                 w.writerow([" ", boat, "Ledger ID", "Date of sail", "Skipper ID", "Skipper", 
                     "Purpose", "Sailplan ID", "Hours", "Revenue"])
-                hrs_grandtotal += hrs_subtotal
-                revenue_grandtotal += revenue_subtotal
-                hrs_subtotal = record[9]
-                revenue_subtotal = record[10]
-                hrs_classtotal += record[9]
-                revenue_classtotal += record[10]
-                hrs_subsubtotal = record[9]
-                revenue_subsubtotal = record[10]
+                #
+                hrs_purpose_total = record[9]
+                hrs_boat_total = record[9]
+                hrs_class_total += record[9]
+                hrs_grand_total += record[9]
+                revenue_purpose_total = record[10]
+                revenue_boat_total = record[10]
+                revenue_class_total += record[10]
+                revenue_grand_total += record[10]
+                #
                 w.writerow(myrow)
+                #
             elif (boatclass != record[0] 
                     and mydate.month == mymonth 
                     and mydate.year == myyear 
                     and record[6] == 1):
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Purpose Subsubtotal:", 
-                    str(round(hrs_subsubtotal,1)), 
-                    str(round(revenue_subsubtotal, 2))])
+                    str(round(hrs_purpose_total,1)), 
+                    str(round(revenue_purpose_total, 2))])
                 w.writerow([" "])
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Subtotal:", 
-                    str(round(hrs_subtotal,1)), 
-                    str(round(revenue_subtotal, 2))])
+                    str(round(hrs_boat_total,1)), 
+                    str(round(revenue_boat_total, 2))])
                 w.writerow([" "])
                 w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Class Total:", 
-                    str(round(hrs_classtotal,1)), 
-                    str(round(revenue_classtotal, 2))])
+                    str(round(hrs_class_total,1)), 
+                    str(round(revenue_class_total, 2))])
                 w.writerow([" "])
                 boatclass = record[0]
                 boat = record[1]
@@ -231,24 +247,26 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
                 w.writerow(["Boat Class: " + str(boatclass)])
                 w.writerow([" ", boat, "Ledger ID", "Date of sail", "Skipper ID", "Skipper", 
                     "Purpose", "Sailplan ID", "Hours", "Revenue"])
-                hrs_grandtotal += hrs_subtotal
-                revenue_grandtotal += revenue_subtotal
-                hrs_subtotal = record[9]
-                revenue_subtotal = record[10]
-                hrs_classtotal = record[9]
-                revenue_classtotal = record[10]
-                hrs_subsubtotal = record[9]
-                revenue_subsubtotal = record[10]
+
+                hrs_purpose_total = record[9]
+                hrs_boat_total = record[9]
+                hrs_class_total = record[9]
+                hrs_grand_total += record[9]
+                revenue_purpose_total = record[10]
+                revenue_boat_total = record[10]
+                revenue_class_total = record[10]
+                revenue_grand_total += record[10]
+                
                 w.writerow(myrow)
         
-        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Subtotal:", str(round(hrs_subtotal,1)), 
-            str(round(revenue_subtotal, 2))])
+        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Subtotal:", str(round(hrs_boat_total,1)), 
+            str(round(revenue_boat_total, 2))])
         w.writerow([" "])
-        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Class Total:", str(round(hrs_classtotal,1)), 
-            str(round(revenue_classtotal, 2))])
+        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Boat Class Total:", str(round(hrs_class_total,1)), 
+            str(round(revenue_class_total, 2))])
         w.writerow([" "])
-        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Grand Total:", str(round(hrs_grandtotal,1)), 
-            str(round(revenue_grandtotal, 2))])
+        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Grand Total:", str(round(hrs_grand_total,1)), 
+            str(round(revenue_grand_total, 2))])
         w.writerow([" "])
 
     db.commit()
