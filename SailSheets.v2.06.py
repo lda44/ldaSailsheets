@@ -110,8 +110,8 @@ def main():
     # Sail Plan creation (check out and check in).
     #
     my_user = pwd.getpwuid(os.getuid()).pw_name
-    my_user = 'NPSC_Sailor' # used for testing
-    #my_user = 'npscadmin' # used for testing
+    #my_user = 'NPSC_Sailor' # used for testing
+    my_user = 'npscadmin' # used for testing
     logger.info(my_user + ' logged in')
         
     if my_user == 'npscadmin':
