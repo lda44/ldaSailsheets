@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
+from tkinter.ttk import Treeview, Style, Button, Entry
 from tkcalendar import Calendar
 from tkcalendar import DateEntry
 import logging
@@ -134,15 +135,22 @@ def sailplanmenu(mywin):
 	#
 	def select_record(e):
 
-		# change the edit state
-		delrecord.config(state='normal')
-		editrecord.config(state='normal')
-		
 		# Grab the record number
 		selected = my_tree.focus()
 
 		# Grab record values
 		values = my_tree.item(selected, 'values')
+		
+		if str(values[9]) == '1':
+			# change the edit state
+			addrecord.config(state='disabled')
+			delrecord.config(state='disabled')
+			editrecord.config(state='normal')
+		else:
+			# change the edit state
+			addrecord.config(state='disabled')
+			delrecord.config(state='normal')
+			editrecord.config(state='normal')
 		return [values[0], values[9]]
 
 		
@@ -215,7 +223,7 @@ def sailplanmenu(mywin):
 		#########################################################
 		# Begin internal "add or edit a sailplan" functions here
 		#
-		def makecrewtree(crewqry, mytree):
+		def makecrewtree(crewqry, mytree, sp_closed):
 			# Clear the tree view
 			for record in mytree.get_children():
 				mytree.delete(record)
@@ -228,37 +236,47 @@ def sailplanmenu(mywin):
 				count += 1
 
 			# Create striped row tags
-			mytree.tag_configure('oddrow', background='#D3D3D3') # light silver
-			mytree.tag_configure('evenrow', background='white') 
-
+			if sp_closed !='1':
+				mytree.tag_configure('oddrow', background='#D3D3D3') # light silver
+				mytree.tag_configure('evenrow', background='gray') 
+			else:
+				mytree.tag_configure('oddrow', background='#D3D3D3', foreground='gray') # light silver
+				mytree.tag_configure('evenrow', background='silver', foreground='gray') 
 			return mytree
 
 
 
-		def getcrewlist(spid):
+		def getcrewlist(spid, sp_closed):
 			#
 			# Open the db and establish a cursor
 			try:
 				db = sqlite3.connect('Sailsheets.db')
 				c = db.cursor()
-				c.execute("""CREATE TABLE IF NOT EXISTS "openspcrew"(o_id real, 
-					o_name text,
-					o_spid int,
-					o_skipper int,
-					o_billtoid real
-					)
-					""")
-				# query to pull the data from the table
-				c.execute("""SELECT o_id, o_name, o_billtoid FROM openspcrew 
-					WHERE o_spid = :ospid ORDER BY o_name""", {'ospid': spid,})
+				if sp_closed != '1':
+					c.execute("""CREATE TABLE IF NOT EXISTS "openspcrew"(o_id real, 
+						o_name text,
+						o_spid int,
+						o_skipper int,
+						o_billtoid real
+						)
+						""")
+					# query to pull the data from the table
+					c.execute("""SELECT o_id, o_name, o_billtoid FROM openspcrew 
+						WHERE o_spid = :ospid ORDER BY o_name""", {'ospid': spid,})
+					logger.info('Crew table queried for closed sailplan ' + str(spid) + '.')
+				else:
+					# query to pull the data from the Ledger table
+					c.execute("""SELECT l_member_id, l_name, l_billto_id FROM Ledger 
+						WHERE l_sp_id = :l_spid ORDER BY l_name""", {'l_spid': spid,})
+					logger.info('Crew table queried for open sailplan ' + str(spid) + '.')
+
 				# fetch the data
 				crewqry = c.fetchall()
 				# commit and close the DB
 				db.commit()
 				db.close()
-				logger.info('Crew table queried for sailplan ' + str(spid) + '.')
 			except:
-				logger.exception('Tried to access open sailplan crew list.')
+				logger.exception('Tried to access sailplan crew list.')
 			else:
 				return crewqry
 
@@ -391,7 +409,7 @@ def sailplanmenu(mywin):
 				'spfee': 0,
 				'spdue': 0,
 				'spbill': 0,
-				'spnrob': len(getcrewlist(myspid)),
+				'spnrob': len(getcrewlist(myspid, '0')),
 				'spcomp': 0,
 				'spid': myspid,
 				})
@@ -800,7 +818,7 @@ def sailplanmenu(mywin):
 
 			db.commit()
 			db.close()
-			return getcrewlist(mysp_id)
+			return getcrewlist(mysp_id, '0')
 
 
 		def cancelediting(new, myspid):
@@ -833,7 +851,7 @@ def sailplanmenu(mywin):
 			db.commit()
 			db.close()
 			crew_del_btn.configure(state='disabled')
-			crewqry = getcrewlist(mysp_id)
+			crewqry = getcrewlist(mysp_id, '0')
 			crewlist = [x[1] for x in crewqry]
 			crew_tree = makecrewtree(crewqry, crew_tree)
 			return 
@@ -906,7 +924,7 @@ def sailplanmenu(mywin):
 
 		mysailplan = get_sailplan_df(mysp_id)
 		#mycrewlist = getcrewlist(mysp_id)
-		crewlist = [x[1] for x in getcrewlist(mysp_id)]
+		crewlist = [x[1] for x in getcrewlist(mysp_id, 0)]
 		
 		
 		#########################################################
@@ -925,8 +943,8 @@ def sailplanmenu(mywin):
 		#
 		crew_tree = ttk.Treeview(crew_frame, yscrollcommand=tree_scroll.set, selectmode='extended')
 		crew_frame.place(x=10, rely=.44)
-		crew_tree.bind('<ButtonRelease-1>', select_crew)
-		crew_del_btn = Button(sp_win, text='Delete Crew', state='disabled', 
+		
+		crew_del_btn = Button(sp_win, text='Delete Crew', state=edit_state, 
 			command=del_crew)
 		crew_del_btn.place(relx=.6, rely=.5)
 
@@ -941,6 +959,7 @@ def sailplanmenu(mywin):
 		# Pack the treeview to the screen
 		#
 		crew_tree.pack(side=LEFT)
+
 
 		# format columns
 		#
@@ -958,8 +977,16 @@ def sailplanmenu(mywin):
 
 		# Populate the tree & crewlist
 		#
-		crew_tree = makecrewtree(getcrewlist(mysp_id), crew_tree)
 		
+
+		crew_tree = makecrewtree(getcrewlist(mysp_id, sp_closed), crew_tree, sp_closed)
+		
+
+
+		style = Style(mywin)
+		disabled_bg = style.lookup("TEntry", "fieldbackground", ("disabled",))
+		disabled_fg = style.lookup("TEntry", "foreground", ("disabled",))
+
 		# Record Frame for editing/adding 
 		#
 		sailplan_frame = LabelFrame(sp_win, text="SailPlan Record")
@@ -992,7 +1019,7 @@ def sailplanmenu(mywin):
 		sp_skid_e.focus()
 		sp_skid_e.config(state=edit_state)
 		skip_n_combo = ttk.Combobox(sailplan_frame, value=memberlist)
-		if new != 1: skip_n_combo.set(name_dict[float(mysailplan[2])])
+			if new != 1: skip_n_combo.set(name_dict[int(mysailplan[2])])
 		skip_n_combo.grid(row=1, column=2, padx=10)
 		skip_n_combo.config(state=edit_state)
 
@@ -1051,10 +1078,13 @@ def sailplanmenu(mywin):
 		a_club_id_l.grid(row=0, column=0, sticky=W, padx=10)
 		a_club_id_e = Entry(add_member_frame, justify=LEFT, width=10)
 		a_club_id_e.grid(row=0, column=1, stick=W)
+		a_club_id_e.config(state=add_state)
+
 		a_member_l = Label(add_member_frame, text="Name:")
 		a_member_l.grid(row=1, column=0, sticky=W, padx=10)
 		a_member_c = ttk.Combobox(add_member_frame, value=memberlist)
 		a_member_c.grid(row=1, column=1, pady=5)
+		a_member_c.config(state=add_state)
 
 		# Add a Guest frame
 		#
@@ -1065,12 +1095,15 @@ def sailplanmenu(mywin):
 		a_guestname_l.grid(row=0, column=0, sticky=W, padx=10)
 		a_guestname_e = Entry(add_guest_frame, justify=LEFT, width=10)
 		a_guestname_e.grid(row=0, column=1, stick=W)
+		a_guestname_e.config(state=add_state)
+
 		a_guestof_l = Label(add_guest_frame, text="Guest of:")
 		a_guestof_l.grid(row=1, column=0, sticky=W, padx=10)
 		a_guestof_c = ttk.Combobox(add_guest_frame, value= crewlist, 
 			postcommand= lambda: a_guestof_c.configure(values=
-				[x[1] for x in getcrewlist(mysp_id)]))
+				[x[1] for x in getcrewlist(mysp_id, sp_closed)]))
 		a_guestof_c.grid(row=1, column=1, pady=5)
+		a_guestof_c.config(state=add_state)
 
 		# Buttons for commands to modify the record
 		#
@@ -1095,6 +1128,7 @@ def sailplanmenu(mywin):
 		check_in = Button(button_frame, text="Check In", 
 			state=edit_state, command=lambda: checkin_sailplan(mysp_id))
 		check_in.grid(row=0, column=3, padx=10, pady=10)
+		check_in.config(state=edit_state)
 
 		# This button closes the sailplan window and saves the sailplan in OPEN state,
 		# checking the boat OUT. State will be disabled for an edit, normal for new.
@@ -1102,17 +1136,29 @@ def sailplanmenu(mywin):
 		save_btn = Button(button_frame, text="Save Sail Plan", 
 			command=lambda: update_sailplan(mysp_id))
 		save_btn.grid(row=0, column=5, sticky=E, padx=10, pady=10)
-		#ok_btn.focus()
+		save_btn.config(state=edit_state)
 
 		# Let's put a label at the top of the window
 		sp_label = Label(sp_win, text = "Sail Plans", fg="blue", font=("Helvetica", 24))
 		sp_label.place(relx=.5, anchor=N)
 
-		sp_skid_e.bind('<KeyPress-Return>', set_skipper)
-		sp_skid_e.bind('<KeyPress-Tab>', set_skipper)
-		a_member_c.bind('<<ComboboxSelected>>', choosecrew)
-		a_guestof_c.bind('<<ComboboxSelected>>', chooseguest)
-		#sp_win.bind('<ButtonRelease-1>', select_item)
+		if sp_closed == '1':
+			a_member_c.unbind('<<ComboboxSelected>>')
+			a_guestof_c.unbind('<<ComboboxSelected>>')
+			sp_skid_e.unbind('<KeyPress-Return>')
+			sp_skid_e.unbind('<KeyPress-Tab>')
+			crew_tree.unbind('<ButtonRelease-1>')
+			style.map("Treeview", 
+	          fieldbackground=[("disabled", disabled_bg)],
+	          foreground=[("disabled", "gray")],
+	          background=[("disabled", disabled_bg)])
+		else:
+			sp_skid_e.bind('<KeyPress-Return>', set_skipper)
+			sp_skid_e.bind('<KeyPress-Tab>', set_skipper)
+			a_member_c.bind('<<ComboboxSelected>>', choosecrew)
+			a_guestof_c.bind('<<ComboboxSelected>>', chooseguest)
+			crew_tree.bind('<ButtonRelease-1>', select_crew)
+			#sp_win.bind('<ButtonRelease-1>', select_item)
 
 		sp_win.mainloop()
 		return
@@ -1165,6 +1211,9 @@ def sailplanmenu(mywin):
 		global my_date
 		my_date = cal.get_date()
 		q_sp_table(dt.date.fromisoformat(my_date))
+		addrecord.config(state='normal')
+		delrecord.config(state='disabled')
+		editrecord.config(state='disabled')
 		return 
 
 
@@ -1304,6 +1353,7 @@ def sailplanmenu(mywin):
 	# Bindings
 	#
 	cal.bind("<ButtonRelease-1>", datepicker)
+	cal.bind("<Double-Button-1>", datepicker)
 	my_tree.bind("<ButtonRelease-1>", select_record)
 	my_tree.bind("<Double-Button-1>", edit_this_record)
 
