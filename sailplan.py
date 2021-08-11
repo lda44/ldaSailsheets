@@ -122,6 +122,7 @@ def sailplanmenu(mywin):
 		sp_eta_e.delete(0, END)
 		sp_ti_e.delete(0, END)
 		sp_comp_e.delete(0, END)
+		logger.info('Clearboxes function called.')
 
 	#################################################################
 	# 
@@ -151,6 +152,7 @@ def sailplanmenu(mywin):
 			addrecord.config(state='disabled')
 			delrecord.config(state='normal')
 			editrecord.config(state='normal')
+		logger.info('select_record function returned spid and sp_closed fields.')
 		return [values[0], values[9]]
 
 		
@@ -165,6 +167,7 @@ def sailplanmenu(mywin):
 
 		# Grab record values
 		values = my_tree.item(selected, 'values')
+		logger.info('_record function called.')
 		return [values[0], values[9]]
 
 		
@@ -217,12 +220,71 @@ def sailplanmenu(mywin):
 		sp_completed int);
 		"""
 
-		# test using any sp_id > 3550
-		logger.info('Sailplan ' + str(mysp_id) + ' edited.')
-
 		#########################################################
 		# Begin internal "add or edit a sailplan" functions here
 		#
+		class AutocompleteCombobox(ttk.Combobox):
+			# This code snip lifted from stackoverflow, courtesy:
+			"""
+			Created by Mitja Martini on 2008-11-29.
+			Updated by Russell Adams, 2011/01/24 to support Python 3 and Combobox.
+			Updated by Dominic Kexel to use Tkinter and ttk instead of tkinter and tkinter.ttk
+				Licensed same as original (not specified?), or public domain, whichever is less restrictive.
+			""" 
+
+			def set_completion_list(self, completion_list):
+				"""Use our completion list as our drop down selection menu, arrows move through menu."""
+				self._completion_list = sorted(completion_list, key=str.lower) # Work with a sorted list
+				self._hits = []
+				self._hit_index = 0
+				self.position = 0
+				self.bind('<KeyRelease>', self.handle_keyrelease)
+				self['values'] = self._completion_list  # Setup our popup menu
+
+			def autocomplete(self, delta=0):
+				"""autocomplete the Combobox, delta may be 0/1/-1 to cycle through possible hits"""
+				if delta: # need to delete selection otherwise we would fix the current position
+					self.delete(self.position, END)
+				else: # set position to end so selection starts where textentry ended
+					self.position = len(self.get())
+				# collect hits
+				_hits = []
+				for element in self._completion_list:
+					if element.lower().startswith(self.get().lower()): # Match case insensitively
+						_hits.append(element)
+					# if we have a new hit list, keep this in mind
+					if _hits != self._hits:
+						self._hit_index = 0
+						self._hits=_hits
+					# only allow cycling if we are in a known hit list
+					if _hits == self._hits and self._hits:
+						self._hit_index = (self._hit_index + delta) % len(self._hits)
+					# now finally perform the auto completion
+					if self._hits:
+						self.delete(0, END)
+						self.insert(0,self._hits[self._hit_index])
+						self.select_range(self.position, END)
+
+			def handle_keyrelease(self, event):
+				"""event handler for the keyrelease event on this widget"""
+				if event.keysym == "Return":
+					choosecrew(event)
+				if event.keysym == "BackSpace":
+					self.delete(self.index(INSERT), END)
+					self.position = self.index(END)
+				if event.keysym == "Left":
+					if self.position < self.index(END): # delete the selection
+						self.delete(self.position, END)
+					else:
+						self.position = self.position-1 # delete one character
+						self.delete(self.position, END)
+				if event.keysym == "Right":
+					self.position = self.index(END) # go to end (no selection)
+				if len(event.keysym) == 1:
+					self.autocomplete()
+				# No need for up/down, we'll jump to the popup
+				# list at the position of the autocompletion
+
 		def makecrewtree(crewqry, mytree, sp_closed):
 			# Clear the tree view
 			for record in mytree.get_children():
@@ -767,19 +829,19 @@ def sailplanmenu(mywin):
 			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
 			crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
 			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree)
+			crew_tree = makecrewtree(crewqry, crew_tree, 0)
 
 
 		def choosecrew(event):
 			# confirms works 7/15
 			global crew_tree
 			crewid = float(id_dict[a_member_c.get()])
-			a_club_id_e.insert(0, crewid)
+			#a_club_id_e.insert(0, crewid)
 			crewqry = add_crew(1, 0, a_member_c.get(), crewid, crewid)
 			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree)
+			crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			a_member_c.delete(0, END)
-			a_club_id_e.delete(0, END)
+			#a_club_id_e.delete(0, END)
 
 
 		def chooseguest(event):
@@ -788,7 +850,7 @@ def sailplanmenu(mywin):
 			guestof_id = id_dict[a_guestof_c.get()]
 			crewqry = add_crew(1, 0, a_guestname_e.get(), -1, guestof_id)
 			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree)
+			crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			a_guestname_e.delete(0, END)
 			a_guestof_c.delete(0, END)
 
@@ -853,7 +915,7 @@ def sailplanmenu(mywin):
 			crew_del_btn.configure(state='disabled')
 			crewqry = getcrewlist(mysp_id, '0')
 			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree)
+			crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			return 
 
 
@@ -878,11 +940,12 @@ def sailplanmenu(mywin):
 			edit_state = 'disabled'
 			add_state = 'disabled'
 			new = 0
+			logger.info('Sailplan ' + str(mysp_id) + ' reviewed.')
 		else:
 			edit_state = 'normal'
 			add_state = 'normal'
 			new = 0
-
+			logger.info('Sailplan ' + str(mysp_id) + ' edited.')
 
 		if mysp_id == -1:
 			if messagebox.askokcancel(LiabilityWaiver.w_header, LiabilityWaiver.w_title) != 1:
@@ -893,6 +956,7 @@ def sailplanmenu(mywin):
 			new = 1 # this is a new record, used when canceling
 			edit_state = "normal"
 			add_state = "normal"
+			logger.info('Sailplan ' + str(mysp_id) + ' to be added.')
 
 
 		# Create a new window
@@ -977,12 +1041,8 @@ def sailplanmenu(mywin):
 
 		# Populate the tree & crewlist
 		#
-		
-
 		crew_tree = makecrewtree(getcrewlist(mysp_id, sp_closed), crew_tree, sp_closed)
 		
-
-
 		style = Style(mywin)
 		disabled_bg = style.lookup("TEntry", "fieldbackground", ("disabled",))
 		disabled_fg = style.lookup("TEntry", "foreground", ("disabled",))
@@ -994,19 +1054,13 @@ def sailplanmenu(mywin):
 
 		# Labels & Entry boxes for the record
 		#
-		# Consider using .place instead of .grid
-		#
-		# Initial version for testing functionality allows full 
-		# editing of all fields.  Final version will disable 
-		# fields we don't want the user to modify, and will
-		# disable fields to read only for all fields once the 
-		# sailplan is closed.
-		#
 		# Top line of entries:
 		#
 		sp_boat_l = Label(sailplan_frame, text="Boat:")
 		sp_boat_l.grid(row=0, column=0, sticky=W, padx=10)
-		boat_combo = ttk.Combobox(sailplan_frame, value=myboatlist)
+		boat_combo = AutocompleteCombobox(sailplan_frame)
+		boat_combo.set_completion_list(myboatlist)
+
 		boat_combo.insert(0, mysailplan[3])
 		boat_combo.grid(row=1, column=0, padx=10)
 		boat_combo.config(state=edit_state)
@@ -1018,16 +1072,18 @@ def sailplanmenu(mywin):
 		sp_skid_e.grid(row=1, column=1, sticky=W)
 		sp_skid_e.focus()
 		sp_skid_e.config(state=edit_state)
-		skip_n_combo = ttk.Combobox(sailplan_frame, value=memberlist)
-			if new != 1: skip_n_combo.set(name_dict[int(mysailplan[2])])
+		skip_n_combo = AutocompleteCombobox(sailplan_frame)
+		skip_n_combo.set_completion_list(memberlist)
+
+		if new != 1: skip_n_combo.set(name_dict[int(mysailplan[2])])
 		skip_n_combo.grid(row=1, column=2, padx=10)
 		skip_n_combo.config(state=edit_state)
 
 		sp_purp_l = Label(sailplan_frame, text="Purpose:")
 		sp_purp_l.grid(row=0, column=3, sticky=W)
 		purp_combo = ttk.Combobox(sailplan_frame, value=mypurplist)
-		purp_combo.insert(0, mysailplan[4])
-		#purp_combo.current(8) # Rec sailing?
+		if new != 1: purp_combo.insert(0, mysailplan[4])
+		else: purp_combo.insert(0, 'Recreational Use') # Default
 		purp_combo.grid(row=1, column=3)
 		purp_combo.config(state=edit_state)
 
@@ -1056,9 +1112,10 @@ def sailplanmenu(mywin):
 		sp_ti_l = Label(sailplan_frame, text="Time Checked In:")
 		sp_ti_l.grid(row=2, column=3, columnspan=2, sticky=W)
 		sp_ti_e = Entry(sailplan_frame, width=20, justify=LEFT, state='normal')
-		if new != 1: sp_ti_e.insert(0, mysailplan[7])
+		if sp_closed != '1': sp_ti_e.insert(0, sp_eta_e.get())
+		else: sp_ti_e.insert(0, mysailplan[7])
 		sp_ti_e.grid(row=3, column=3, columnspan=2, sticky=W)
-		sp_ti_e.config(state=edit_state)
+		sp_ti_e.config(state='disabled')
 
 		# Third line of entries:
 		#
@@ -1074,27 +1131,29 @@ def sailplanmenu(mywin):
 		add_member_frame = LabelFrame(sp_win, 
 			text="Add a Club Member:")
 		add_member_frame.place(x=10, rely=.375, anchor=W)
-		a_club_id_l = Label(add_member_frame, text="Club #:")
-		a_club_id_l.grid(row=0, column=0, sticky=W, padx=10)
-		a_club_id_e = Entry(add_member_frame, justify=LEFT, width=10)
-		a_club_id_e.grid(row=0, column=1, stick=W)
-		a_club_id_e.config(state=add_state)
+		#a_club_id_l = Label(add_member_frame, text=" ")
+		#a_club_id_l.grid(row=0, column=0, sticky=W, padx=10)
+		#a_club_id_e = Entry(add_member_frame, justify=LEFT, width=10)
+		#a_club_id_e.grid(row=0, column=1, stick=W)
+		#a_club_id_e.config(state=add_state)
 
 		a_member_l = Label(add_member_frame, text="Name:")
 		a_member_l.grid(row=1, column=0, sticky=W, padx=10)
-		a_member_c = ttk.Combobox(add_member_frame, value=memberlist)
-		a_member_c.grid(row=1, column=1, pady=5)
+		a_member_c = AutocompleteCombobox(add_member_frame)
+		a_member_c.set_completion_list(memberlist)
+
+		a_member_c.grid(row=1, column=1, padx=10, pady=5)
 		a_member_c.config(state=add_state)
 
 		# Add a Guest frame
 		#
 		add_guest_frame = LabelFrame(sp_win, 
 			text="Add a Guest:")
-		add_guest_frame.place(x=670, rely=.375, anchor=E)
+		add_guest_frame.place(x=655, rely=.375, anchor=E)
 		a_guestname_l = Label(add_guest_frame, text="Guest Name:")
 		a_guestname_l.grid(row=0, column=0, sticky=W, padx=10)
-		a_guestname_e = Entry(add_guest_frame, justify=LEFT, width=10)
-		a_guestname_e.grid(row=0, column=1, stick=W)
+		a_guestname_e = Entry(add_guest_frame, justify=LEFT, width=20)
+		a_guestname_e.grid(row=0, column=1, stick=W, padx=10, pady=5)
 		a_guestname_e.config(state=add_state)
 
 		a_guestof_l = Label(add_guest_frame, text="Guest of:")
