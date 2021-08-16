@@ -129,18 +129,23 @@ def e_ledger(root):
 		# Grab record values
 		values = my_tree.item(selected, 'values')
 
-		# Output to entry boxes
-		l_id_e.insert(0, values[0])
-		l_date_e.insert(0, values[1])
-		l_mid_e.insert(0, values[2])
-		l_name_e.insert(0, values[3])
-		l_skip_e.insert(0, values[4])
-		l_desc_e.insert(0, values[5])
-		l_billto_e.insert(0, values[6])
-		l_fee_e.insert(0, values[7])
-		l_acct_e.insert(0, values[8])
-		l_spid_e.insert(0, values[9])
-		return
+		try:
+			# Output to entry boxes
+			l_id_e.insert(0, values[0])
+			l_date_e.insert(0, values[1])
+			l_mid_e.insert(0, values[2])
+			l_name_e.insert(0, values[3])
+			l_skip_e.insert(0, values[4])
+			l_desc_e.insert(0, values[5])
+			l_billto_e.insert(0, values[6])
+			l_fee_e.insert(0, values[7])
+			l_acct_e.insert(0, values[8])
+			l_spid_e.insert(0, values[9])
+			logger.info('Retrieved a ledger entry to edit.')
+		except IndexError:
+			logger.exception('Clicked in the tree but did not select a record.')
+		finally:
+			return
 	    
 	#################################################################
 	# 
@@ -270,12 +275,12 @@ def e_ledger(root):
 	# format columns
 	#
 	my_tree.column("#0", width=0, stretch=NO)
-	my_tree.column("l_id", anchor=CENTER, width=40, minwidth=20)
+	my_tree.column("l_id", anchor=CENTER, width=50, minwidth=20)
 	my_tree.column("l_date", anchor=CENTER, width=100, minwidth=40)
 	my_tree.column("l_member_id", anchor=CENTER, width=85, minwidth=50)
 	my_tree.column("l_name", anchor=W, width=125, minwidth=75)
-	my_tree.column("l_skipper", anchor=CENTER, width=80, minwidth=35)
-	my_tree.column("l_desc", anchor=W, width=150, minwidth=35)
+	my_tree.column("l_skipper", anchor=CENTER, width=60, minwidth=35)
+	my_tree.column("l_desc", anchor=W, width=140, minwidth=35)
 	#my_tree.column("l_mvol", anchor=CENTER, width=40, minwidth=15)
 	#my_tree.column("l_cvol", anchor=CENTER, width=40, minwidth=15)
 	my_tree.column("l_billto", anchor=CENTER, width=80, minwidth=35)
@@ -291,7 +296,7 @@ def e_ledger(root):
 	my_tree.heading("l_date", text="Sail Date", anchor=CENTER)
 	my_tree.heading("l_member_id", text="Member#", anchor=CENTER)
 	my_tree.heading("l_name", text="Name", anchor=W)
-	my_tree.heading("l_skipper", text="Skipper?", anchor=CENTER)
+	my_tree.heading("l_skipper", text="Skipr?", anchor=CENTER)
 	my_tree.heading("l_desc", text="Description", anchor=W)
 	#my_tree.heading("l_mvol", text="MVol?", anchor=CENTER)
 	#my_tree.heading("l_cvol", text="CVol?", anchor=CENTER)

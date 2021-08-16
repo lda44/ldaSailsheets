@@ -63,6 +63,9 @@ import logging
 import os
 import pwd
 
+# the following library if installed via pip: pip install screeninfo
+from screeninfo import get_monitors
+
 # next import the separate modules of the Sailsheets app
 import SS_admin
 import SS_db_functions
@@ -98,7 +101,9 @@ def main():
     app_width = int((screen_width / 2) * .70)
     app_height = int(screen_height * .80)
 
-    x = (screen_width / 4) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
+    num_monitors = len(get_monitors())
+
+    x = (screen_width / (2 * num_monitors)) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
     y = (screen_height / 2) - (app_height / 2)
 
     root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')

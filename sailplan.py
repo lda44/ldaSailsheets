@@ -1,3 +1,4 @@
+from screeninfo import get_monitors
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
@@ -17,6 +18,54 @@ formatter = logging.Formatter('%(asctime)s:%(name)s:%(levelname)s:%(message)s')
 file_handler = logging.FileHandler(__name__ + '.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+
+def sp_askokcancel(my_win, my_title, my_msg):
+	ok_cancel = 0
+
+	def pop_ok():
+		global ok_cancel
+		ok_cancel = 1
+		popup.destroy()
+
+	def pop_cancel():
+		global ok_cancel
+		ok_cancel = 0
+		popup.destroy()
+
+	large_font = ("Verdana", 12)
+	normal_font = ("Helvetica", 10)
+	small_font = ("Helvetica", 8)
+
+	screen_width = my_win.winfo_screenwidth()
+	screen_height = my_win.winfo_screenheight()
+	app_width = int((screen_width / 2) * .6)
+	app_height = int(screen_height * .6)
+
+	num_monitors = len(get_monitors())
+
+	x = (screen_width / (2 * num_monitors)) - (app_width / 2) 
+	y = (screen_height / 2) - (app_height / 2)
+
+	popup = Tk()
+	popup.title("Morale, Welfare & Recreation")
+
+	popup.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+
+	pop_title = Label(popup, text=my_title, font=large_font)
+	pop_title.pack(side="top", fill="x", pady=10)
+
+	pop_msg = Label(popup, text=my_msg, font=normal_font, justify=LEFT)
+	pop_msg.pack(pady=10)
+
+	pop_btn_ok = Button(popup, text = "Okay", command=pop_ok)
+	pop_btn_ok.pack()
+	pop_btn_canc = Button(popup, text = "Cancel", command=pop_cancel)
+	pop_btn_canc.pack()
+	popup.mainloop()
+
+	print(ok_cancel)
+	return ok_cancel
 
 
 #####################################################################
@@ -142,18 +191,26 @@ def sailplanmenu(mywin):
 		# Grab record values
 		values = my_tree.item(selected, 'values')
 		
-		if str(values[9]) == '1':
-			# change the edit state
-			addrecord.config(state='disabled')
-			delrecord.config(state='disabled')
-			editrecord.config(state='normal')
-		else:
-			# change the edit state
-			addrecord.config(state='disabled')
-			delrecord.config(state='normal')
-			editrecord.config(state='normal')
-		logger.info('select_record function returned spid and sp_closed fields.')
-		return [values[0], values[9]]
+		try:
+			if str(values[9]) == '1':
+				# change the edit state
+				addrecord.config(state='disabled')
+				delrecord.config(state='disabled')
+				editrecord.config(state='normal')
+			else:
+				# change the edit state
+				addrecord.config(state='disabled')
+				delrecord.config(state='normal')
+				editrecord.config(state='normal')
+			logger.info('select_record function returned spid and sp_closed fields.')
+			return [values[0], values[9]]
+		except IndexError:
+			logger.exception('Index error - usually means clicking on a blank tree.')
+			return -1, 1 # assume spid is new and also closed so no harm
+		finally:
+			pass
+
+
 
 		
 	#################################################################
@@ -948,7 +1005,12 @@ def sailplanmenu(mywin):
 			logger.info('Sailplan ' + str(mysp_id) + ' edited.')
 
 		if mysp_id == -1:
-			if messagebox.askokcancel(LiabilityWaiver.w_header, LiabilityWaiver.w_title) != 1:
+			if sp_askokcancel(mywin, LiabilityWaiver.w_title, 
+				LiabilityWaiver.w_opening + '\n' + '\n' +
+				LiabilityWaiver.w_para1 + '\n' + '\n' +
+				LiabilityWaiver.w_para2 + '\n' + '\n' +
+				LiabilityWaiver.w_para3 + '\n' + '\n' +
+				LiabilityWaiver.w_close + '\n') != 1:
 				return
 			# create a blank record -- if the user cancels out this will get removed
 			#
@@ -967,7 +1029,7 @@ def sailplanmenu(mywin):
 		app_width = int((screen_width / 2) * .39)
 		app_height = int(screen_height * .60)
 
-		x = (screen_width / 4) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
+		x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
 		y = (screen_height / 2) - (app_height / 2)
 
 		sp_win.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
