@@ -20,52 +20,82 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def sp_askokcancel(my_win, my_title, my_msg):
-	ok_cancel = 0
+class sp_askokcancel(object):
+	
+	def __init__(self, title='', msg=''):
+	#my_win, my_title, my_msg
 
-	def pop_ok():
-		global ok_cancel
-		ok_cancel = 1
-		popup.destroy()
+	# Required Data of Init Function
+		self.title = title      # Is title of titlebar
+		self.msg = msg          # Is message to display
+		self.b1 = 'Ok'          # Button 1 (outputs '1')
+		self.b2 = 'Cancel'      # Button 2 (outputs '0')
+		self.choice = ''        # it will be the return of messagebox according to button press
 
-	def pop_cancel():
-		global ok_cancel
-		ok_cancel = 0
-		popup.destroy()
 
-	large_font = ("Verdana", 12)
-	normal_font = ("Helvetica", 10)
-	small_font = ("Helvetica", 8)
+	# Creating Dialogue for messagebox
+		self.root = Toplevel()
 
-	screen_width = my_win.winfo_screenwidth()
-	screen_height = my_win.winfo_screenheight()
-	app_width = int((screen_width / 2) * .6)
-	app_height = int(screen_height * .6)
+	# Removing titlebar from the Dialogue
+		self.root.overrideredirect(True)
 
-	num_monitors = len(get_monitors())
+	# Setting Geometry
+		screen_width = self.root.winfo_screenwidth()
+		screen_height = self.root.winfo_screenheight()
+		app_width = int((screen_width / 2) * .6)
+		app_height = int(screen_height * .6)
 
-	x = (screen_width / (2 * num_monitors)) - (app_width / 2) 
-	y = (screen_height / 2) - (app_height / 2)
+		num_monitors = len(get_monitors())
 
-	popup = Tk()
-	popup.title("Morale, Welfare & Recreation")
+		x = (screen_width / (2 * num_monitors)) - (app_width / 2) 
+		y = (screen_height / 2) - (app_height / 2)
 
-	popup.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
+		self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
-	pop_title = Label(popup, text=my_title, font=large_font)
-	pop_title.pack(side="top", fill="x", pady=10)
+	# Creating Label For message
+		self.msg = Label(self.root,text=msg,
+						font=("Helvetica",9),
+						justify=LEFT
+						#anchor='nw'
+						)
+		self.msg.place(x=20,y=28,height=app_height*.9,width=app_width*.9)
 
-	pop_msg = Label(popup, text=my_msg, font=normal_font, justify=LEFT)
-	pop_msg.pack(pady=10)
+	# Creating TitleBar
+		self.titlebar = Label(self.root,text=self.title,
+						bd=0,
+						font=("Verdana",10,'bold'),
+						justify=CENTER
+						)
+		self.titlebar.place(x=60, y=15)
 
-	pop_btn_ok = Button(popup, text = "Okay", command=pop_ok)
-	pop_btn_ok.pack()
-	pop_btn_canc = Button(popup, text = "Cancel", command=pop_cancel)
-	pop_btn_canc.pack()
-	popup.mainloop()
+	# Creating B1 
+		self.B1 = Button(self.root,text=self.b1,command=self.click1)
+		self.B1.place(x=(app_width / 2),y=app_height*.85,height=25,width=60)
 
-	print(ok_cancel)
-	return ok_cancel
+	# Getting place_info of B1
+		self.B1.info = self.B1.place_info()
+
+	# Creating B2
+		self.B2 = Button(self.root,text=self.b2,command=self.click2)
+		self.B2.place(x=int(self.B1.info['x'])-(70*1),
+						y=int(self.B1.info['y']),
+						height=int(self.B1.info['height']),
+						width=int(self.B1.info['width'])
+						)
+
+	# Making MessageBox Visible
+		self.root.wait_window()
+
+	# Function on pressing B1 == Ok button
+	def click1(self):
+		self.root.destroy() # Destroying Dialogue
+		self.choice='1'     # Assigning Value
+
+	# Function on pressing B2 == Cancel button
+	def click2(self):
+		self.root.destroy() # Destroying Dialogue
+		self.choice='2'     # Assigning Value
+
 
 
 #####################################################################
@@ -1005,12 +1035,12 @@ def sailplanmenu(mywin):
 			logger.info('Sailplan ' + str(mysp_id) + ' edited.')
 
 		if mysp_id == -1:
-			if sp_askokcancel(mywin, LiabilityWaiver.w_title, 
+			if sp_askokcancel(LiabilityWaiver.w_title, 
 				LiabilityWaiver.w_opening + '\n' + '\n' +
 				LiabilityWaiver.w_para1 + '\n' + '\n' +
 				LiabilityWaiver.w_para2 + '\n' + '\n' +
 				LiabilityWaiver.w_para3 + '\n' + '\n' +
-				LiabilityWaiver.w_close + '\n') != 1:
+				LiabilityWaiver.w_close + '\n').choice != '1':
 				return
 			# create a blank record -- if the user cancels out this will get removed
 			#
