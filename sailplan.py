@@ -943,13 +943,18 @@ def sailplanmenu(mywin):
 			global crew_tree
 			logger.debug(str(event) + ': ' + a_member_c.get() + ', ID: ' + str(id_dict[a_member_c.get()]))
 			crewid = float(id_dict[a_member_c.get()])
-			#a_club_id_e.insert(0, crewid)
-			crewqry = add_crew(1, 0, a_member_c.get(), crewid, crewid)
-			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree, 0)
+			crewqry = getcrewlist(mysp_id, '0')
+			if crewid in [x[0] for x in getcrewlist(mysp_id, '0')]:
+				logger.info('Tried to add a duplicate crew member.')
+				sp_win.attributes('-topmost',0)
+				messagebox.showinfo('', 'That crew member is already listed.')
+				sp_win.attributes('-topmost',1)
+			else:
+				crewqry = add_crew(1, 0, a_member_c.get(), crewid, crewid)
+				crewlist = [x[1] for x in crewqry]
+				crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			a_member_c.delete(0, END)
-			#a_club_id_e.delete(0, END)
-			logger.info('Choose crew function.')
+			logger.info('Choose crew function finished.')
 
 
 		def chooseguest(event):
