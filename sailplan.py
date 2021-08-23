@@ -355,7 +355,14 @@ def sailplanmenu(mywin):
 			def handle_keyrelease(self, event):
 				"""event handler for the keyrelease event on this widget"""
 				if event.keysym == "Return":
-					choosecrew(event)
+					if str(self) == '.!labelframe3.!autocompletecombobox':
+						logger.info(str(self) + ': Crew added')
+						choosecrew(event)
+					elif str(self) == '.!labelframe2.!autocompletecombobox2':
+						logger.infor(str(self), ': Skipper added')
+						set_skipper_id(event)
+					else: 
+						logger.info(str(self) + ': Nothing')
 				if event.keysym == "BackSpace":
 					self.delete(self.index(INSERT), END)
 					self.position = self.index(END)
@@ -412,12 +419,12 @@ def sailplanmenu(mywin):
 					# query to pull the data from the table
 					c.execute("""SELECT o_id, o_name, o_billtoid FROM openspcrew 
 						WHERE o_spid = :ospid ORDER BY o_name""", {'ospid': spid,})
-					logger.info('Crew table queried for closed sailplan ' + str(spid) + '.')
+					logger.info('Crew table queried for open sailplan ' + str(spid) + '.')
 				else:
 					# query to pull the data from the Ledger table
 					c.execute("""SELECT l_member_id, l_name, l_billto_id FROM Ledger 
 						WHERE l_sp_id = :l_spid ORDER BY l_name""", {'l_spid': spid,})
-					logger.info('Crew table queried for open sailplan ' + str(spid) + '.')
+					logger.info('Crew table queried for closed sailplan ' + str(spid) + '.')
 
 				# fetch the data
 				crewqry = c.fetchall()
@@ -908,7 +915,19 @@ def sailplanmenu(mywin):
 			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
 
 
-		def set_skipper(event): 
+		def set_skipper_id(event): 
+			# confirms works 7/15
+			global crew_tree
+			skipname = skip_n_combo.get()
+			skipid = float(id_dict[skipname])
+			sp_skid_e.delete(0, END)
+			sp_skid_e.insert(0, str(skipid))
+			crewqry = add_crew(1, 1, skipname, skipid, skipid)
+			crewlist = [x[1] for x in crewqry]
+			crew_tree = makecrewtree(crewqry, crew_tree, 0)
+
+
+		def set_skipper_name(event): 
 			# confirms works 7/15
 			global crew_tree
 			if sp_skid_e.get() == '': return
@@ -922,6 +941,7 @@ def sailplanmenu(mywin):
 		def choosecrew(event):
 			# confirms works 7/15
 			global crew_tree
+			logger.debug(str(event) + ': ' + a_member_c.get() + ', ID: ' + str(id_dict[a_member_c.get()]))
 			crewid = float(id_dict[a_member_c.get()])
 			#a_club_id_e.insert(0, crewid)
 			crewqry = add_crew(1, 0, a_member_c.get(), crewid, crewid)
@@ -929,6 +949,7 @@ def sailplanmenu(mywin):
 			crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			a_member_c.delete(0, END)
 			#a_club_id_e.delete(0, END)
+			logger.info('Choose crew function.')
 
 
 		def chooseguest(event):
@@ -1304,8 +1325,8 @@ def sailplanmenu(mywin):
 	          foreground=[("disabled", "gray")],
 	          background=[("disabled", disabled_bg)])
 		else:
-			sp_skid_e.bind('<KeyPress-Return>', set_skipper)
-			sp_skid_e.bind('<KeyPress-Tab>', set_skipper)
+			sp_skid_e.bind('<KeyPress-Return>', set_skipper_name)
+			sp_skid_e.bind('<KeyPress-Tab>', set_skipper_name)
 			a_member_c.bind('<<ComboboxSelected>>', choosecrew)
 			a_guestof_c.bind('<<ComboboxSelected>>', chooseguest)
 			crew_tree.bind('<ButtonRelease-1>', select_crew)
