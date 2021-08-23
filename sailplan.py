@@ -686,8 +686,18 @@ def sailplanmenu(mywin):
 
 			def write_fees_to_ledger(crewlist, sailplan):
 				ledgerlist = []
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("""SELECT Ledger_id from Ledger where Ledger_id = (select max(Ledger_id) from Ledger)""")
+				last_id = c.fetchone()[0]
+				db.commit()
+				db.close()
+
 				for crew in crewlist:
-					ledgerentry = (sailplan[1][10], 
+					logger.info(str(last_id) + ': added to ledger')
+					last_id += 1
+					ledgerentry = (last_id, 
+						sailplan[1][0:9], 
 						crew[0], 
 						crew[1],
 						crew[3],
@@ -703,7 +713,7 @@ def sailplanmenu(mywin):
 
 				db = sqlite3.connect('Sailsheets.db')
 				c = db.cursor()
-				c.executemany("""INSERT INTO Ledger VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+				c.executemany("""INSERT INTO Ledger VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
 					ledgerlist)
 				db.commit()
 				db.close()
