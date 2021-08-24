@@ -52,25 +52,28 @@ class sp_askokcancel(object):
 
 		self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
-	# Creating Label For message
-		self.msg = Label(self.root,text=msg,
-						font=("Helvetica",9),
-						justify=LEFT
-						#anchor='nw'
-						)
-		self.msg.place(x=20,y=28,height=app_height*.9,width=app_width*.9)
-
 	# Creating TitleBar
 		self.titlebar = Label(self.root,text=self.title,
+						wraplength=app_width-10,
 						bd=0,
 						font=("Verdana",10,'bold'),
 						justify=CENTER
 						)
 		self.titlebar.place(x=60, y=15)
 
+	# Creating Label For message
+		self.msg = Label(self.root,text=msg,
+						wraplength=app_width-100,
+						font=("Helvetica",9),
+						justify=LEFT
+						#anchor='nw'
+						)
+		self.msg.place(x=50,y=35)
+			#,height=app_height*.9,width=app_width*.9)
+
 	# Creating B1 
 		self.B1 = Button(self.root,text=self.b1,command=self.click1)
-		self.B1.place(x=(app_width / 2),y=app_height*.85,height=25,width=60)
+		self.B1.place(x=(app_width / 2),y=app_height*.85,height=30,width=60)
 
 	# Getting place_info of B1
 		self.B1.info = self.B1.place_info()
@@ -1071,12 +1074,14 @@ def sailplanmenu(mywin):
 			logger.info('Sailplan ' + str(mysp_id) + ' edited.')
 
 		if mysp_id == -1:
-			if sp_askokcancel(LiabilityWaiver.w_title, 
-				LiabilityWaiver.w_opening + '\n' + '\n' +
-				LiabilityWaiver.w_para1 + '\n' + '\n' +
-				LiabilityWaiver.w_para2 + '\n' + '\n' +
-				LiabilityWaiver.w_para3 + '\n' + '\n' +
-				LiabilityWaiver.w_close + '\n').choice != '1':
+			w_header = "Navy Patuxent Sailing Club"
+			w_title = "RELEASE AND WAIVER OF LIABILITY, ASSUMPTION OF RISK, AND INDEMNITY AND PARENTAL CONSENT AGREEMENT"
+			with open('LiabilityWaiver.txt') as f:
+				w_contents = f.readlines()
+			l_waiver = ''
+			for x in w_contents: l_waiver += x
+
+			if sp_askokcancel(w_title, l_waiver).choice != '1':
 				return
 			# create a blank record -- if the user cancels out this will get removed
 			#
