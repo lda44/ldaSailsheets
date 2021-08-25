@@ -9,7 +9,6 @@ import logging
 import sqlite3
 import datetime as dt
 from datetime import timedelta
-import LiabilityWaiver
 
 # Set up the logging system
 logger = logging.getLogger(__name__)
@@ -357,12 +356,12 @@ def sailplanmenu(mywin):
 
 			def handle_keyrelease(self, event):
 				"""event handler for the keyrelease event on this widget"""
-				if event.keysym == "Return":
+				if event.keysym == "Return" or event.keysym == "Tab":
 					if str(self) == '.!labelframe3.!autocompletecombobox':
 						logger.info(str(self) + ': Crew added')
 						choosecrew(event)
 					elif str(self) == '.!labelframe2.!autocompletecombobox2':
-						logger.infor(str(self), ': Skipper added')
+						logger.info(str(self) + ': Skipper added')
 						set_skipper_id(event)
 					else: 
 						logger.info(str(self) + ': Nothing')
@@ -700,7 +699,7 @@ def sailplanmenu(mywin):
 					logger.info(str(last_id) + ': added to ledger')
 					last_id += 1
 					ledgerentry = (last_id, 
-						sailplan[1][0:9], 
+						sailplan[1][0:10], 
 						crew[0], 
 						crew[1],
 						crew[3],
@@ -722,6 +721,17 @@ def sailplanmenu(mywin):
 				db.close()
 				return
 			
+
+			def cleanup_open_data(sp_id):
+				# Remove the list of crew from the openspcrew table.
+
+				db = sqlite3.connect('Sailsheets.db')
+				c = db.cursor()
+				c.execute("DELETE from openspcrew where o_spid = :spid", {'spid': sp_id,})
+				db.commit()
+				db.close()
+				logger.info('Closed sailplan ' + str(sp_id) + ' crew removed from openspcrew table.')
+
 
 			# Get the current date/time
 			checkin_dt = dt.datetime.today().isoformat(sep=' ', timespec='seconds')
@@ -866,6 +876,7 @@ def sailplanmenu(mywin):
 			# 2. Crew list of tuples w fees that needs to be written to the ledger
 			close_sailplan_record(sailplan)
 			write_fees_to_ledger(crewlist_w_fee, sailplan)
+			cleanup_open_data(myspid)
 
 			# now close the window and return to the screen
 			sp_win.destroy()
@@ -905,7 +916,7 @@ def sailplanmenu(mywin):
 				""",
 				{
 				'spto': dt.datetime.today().isoformat(sep=' ', timespec='seconds'),
-				'spskid': 1, 
+				'spskid': 0, 
 				'spboat': '', 
 				'sppurp': '', 
 				'spdesc': '', 
@@ -925,36 +936,57 @@ def sailplanmenu(mywin):
 
 		def enter_press(event): 
 			if sp_skid_e.get() == '': return
-			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
+			#skip_n_combo.set(name_dict[float(sp_skid_e.get())])
+			set_skipper_name(event)
 
 
 		def set_skipper_id(event): 
 			# confirms works 7/15
 			global crew_tree
 			skipname = skip_n_combo.get()
+			if skipname == '': return
 			skipid = float(id_dict[skipname])
-			sp_skid_e.delete(0, END)
-			sp_skid_e.insert(0, str(skipid))
-			crewqry = add_crew(1, 1, skipname, skipid, skipid)
-			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree, 0)
+			logger.debug(str(event) + ': Skipper - ' + skipname + ', ID: ' + str(skipid))
+			#crewqry = getcrewlist(mysp_id, '0')
+			if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
+				logger.info('Tried to add a duplicate Skipper.')
+				sp_win.attributes('-topmost',0)
+				messagebox.showinfo('ENTRY ERROR!', 'That Skipper is already listed.')
+				sp_win.attributes('-topmost',1)
+			else:
+				sp_skid_e.config(state='normal')
+				sp_skid_e.delete(0, END)
+				sp_skid_e.insert(0, str(skipid))
+				sp_skid_e.config(state='disabled')
+				crewqry = add_crew(1, 1, skipname, skipid, skipid)
+				crewlist = [x[1] for x in crewqry]
+				crew_tree = makecrewtree(crewqry, crew_tree, 0)
+			logger.info('Set Skipper ID function finished.')
 
 
 		def set_skipper_name(event): 
-			# confirms works 7/15
+			# Need to remove this and show it as read only.
 			global crew_tree
 			if sp_skid_e.get() == '': return
 			skipid = sp_skid_e.get()
 			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-			crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
-			crewlist = [x[1] for x in crewqry]
-			crew_tree = makecrewtree(crewqry, crew_tree, 0)
+			#crewqry = getcrewlist(mysp_id, '0')
+			if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
+				logger.info('Tried to add a duplicate Skipper.')
+				sp_win.attributes('-topmost',0)
+				messagebox.showinfo('', 'That Skipper is already listed.')
+				sp_win.attributes('-topmost',1)
+			else:
+				crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
+				crewlist = [x[1] for x in crewqry]
+				crew_tree = makecrewtree(crewqry, crew_tree, 0)
+			logger.info('Set Skipper Name function finished.')
 
 
 		def choosecrew(event):
 			# confirms works 7/15
 			global crew_tree
-			logger.debug(str(event) + ': ' + a_member_c.get() + ', ID: ' + str(id_dict[a_member_c.get()]))
+			logger.debug(str(event) + ': Crew - ' + a_member_c.get() + ', ID: ' + str(id_dict[a_member_c.get()]))
 			crewid = float(id_dict[a_member_c.get()])
 			crewqry = getcrewlist(mysp_id, '0')
 			if crewid in [x[0] for x in getcrewlist(mysp_id, '0')]:
@@ -1204,7 +1236,7 @@ def sailplanmenu(mywin):
 		sp_skid_e.insert(0, mysailplan[2])
 		sp_skid_e.grid(row=1, column=1, sticky=W)
 		sp_skid_e.focus()
-		sp_skid_e.config(state=edit_state)
+		sp_skid_e.config(state='disabled')
 		skip_n_combo = AutocompleteCombobox(sailplan_frame)
 		skip_n_combo.set_completion_list(memberlist)
 
