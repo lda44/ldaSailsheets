@@ -57,6 +57,13 @@ def update_ledger(ledgerfile):
 		for row in r:
 			if int(row['idLedger']) > last_id:
 				logger.debug('Reading row: ' + str(row))
+				if row['idBillTo'] == 'NULL': 
+					row['idBillTo'] = row['idMember']
+				if row['Fee'] == 'NULL': 
+					row['Fee'] = '0'
+				if row['UploadDate'] == 'NULL': 
+					row['UploadDate'] = row['Date']
+				
 				c.execute("""INSERT INTO Ledger (ledger_id, 
 					l_date,
 					l_member_id,
@@ -156,7 +163,7 @@ def update_sailplan(sailplanfile):
 def main():
 	mywin = Tk()
 
-	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-08-04_Backup_CSV_Files',
+	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-09-01_Backup_CSV_Files',
 		title='Open ledger.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)
@@ -165,7 +172,7 @@ def main():
 		Success = update_ledger(mywin.ledgerfile)
 		logger.info(mywin.ledgerfile + ' imported to Ledger Table.')
 		
-	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-08-04_Backup_CSV_Files',
+	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-09-01_Backup_CSV_Files',
 		title='Open sailplan.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)

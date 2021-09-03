@@ -17,6 +17,10 @@
         Backup: /home/NPSC/SailSheets/Backups
         Import: /home/NPSC/SailSheets/Transfer
 
+    For versioning X.YY.ZZ:
+        X = schema changes or changes in business process (major outcomes)
+        YY = changes in functionality, but business process flow does not change
+        ZZ = bug fixes but no changes in functionality (aka just making it work as intended)
 
     This app uses sqlite3, tkinter, and tkcalendar
     Ensure these are installed on the linux box if using for the first 
@@ -181,6 +185,8 @@ def main():
     my_menu.add_cascade(label="Reports", menu=reports_menu, state=admin_state)
     reports_menu.add_command(label="Create Monthly Reports", 
         command=lambda: SS_admin.monthly_reports(root))
+    reports_menu.add_command(label="Create Member Use Log", 
+        command=lambda: SS_admin.member_usage_log(root))
 
 
     # Let's put a label at the top of the window

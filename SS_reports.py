@@ -417,3 +417,112 @@ def ReportMemberUse(mymonth, myyear):
     db.commit()
     db.close()
     logger.info('Executed ReportMemberUse report.')
+
+def MemberUseLog(member_id):
+    
+    month_list = ['January', 'February', 'March',
+                    'April', 'May', 'June', 
+                    'July', 'August', 'September',
+                    'October', 'November', 'December']    
+
+    reportpath = './Reports/UserLogs'
+    p = Path(reportpath) 
+
+    if not Path(reportpath).exists():
+        p.mkdir(parents=True)
+
+    myreportname =  reportpath + '/UsageLog for ID - ' + str(member_id) + '.csv'
+
+    db = sqlite3.connect('Sailsheets.db')
+    c = db.cursor()
+        
+    """CREATE TABLE Ledger (ledger_id int primary key,
+        l_date text,
+        l_member_id real,
+        l_name text,
+        l_skipper int,
+        l_description text,
+        l_mwrvol int,
+        l_clubvol int,
+        l_billto_id real,
+        l_fee real,
+        l_account text,
+        l_sp_id int,
+        l_uploaddate text);
+    CREATE TABLE SailPlan (sp_id int primary key,
+        sp_timeout text,
+        sp_skipper_id real,
+        sp_sailboat text,
+        sp_purpose text,
+        sp_description text,
+        sp_estrtntime text,
+        sp_timein text,
+        sp_hours real,
+        sp_feeeach real,
+        sp_feesdue real,
+        sp_mwrbilldue real,
+        sp_billmembers int,
+        sp_completed int);
+    """
+
+    c.execute("""SELECT l_date, sp_sailboat, l_member_id, l_name, 
+        ledger_id, Sailplan.sp_purpose, SailPlan.sp_timeout, SailPlan.sp_timein, SailPlan.sp_hours, 
+        l_sp_id
+        FROM Ledger 
+        JOIN SailPlan ON Ledger.l_sp_id=SailPlan.sp_id
+        WHERE l_member_id = :mid
+        ORDER BY Ledger.l_date, Ledger.l_sp_id
+        """, {'mid': member_id,})
+        #
+        # Column assignments:
+        # Date = 0 text
+        # Boat = 1 text
+        # Member ID = 2 int
+        # Member Name = 3 text
+        # Ledger ID = 4 int
+        # Description = 5 text
+        # Time out = 6 text
+        # Time in = 7 text
+        # Hours = 8 real
+        # sailplan ID = 9 int
+
+
+    usagetable = c.fetchall()
+        
+    with open(myreportname, 'w', newline='') as f:
+        firstrecord = usagetable[0]
+        w = csv.writer(f, dialect='excel')
+        w.writerow(["Report for member ID: ", str(member_id), "Name:", firstrecord[3]])
+        w.writerow([" "])
+        w.writerow(["Sail Date", "Boat", "Member ID", "Member Name", "Ledger ID", "Purpose", 
+            "Time Departed", "Time Returned", "Hours"])
+        w.writerow([" "])
+        saildate = firstrecord[0]
+        boat = firstrecord[1]
+        membername = firstrecord[3]
+    
+        member_hrs_grandtotal = 0
+
+        for record in usagetable:
+            myrow = ([
+                str(record[0]),
+                str(record[1]), 
+                str(record[2]), 
+                str(record[3]), 
+                str(record[4]), 
+                str(record[5]),
+                str(record[6]), 
+                str(record[7]), 
+                str(round(record[8],1))])
+
+            w.writerow(myrow)
+            member_hrs_grandtotal += record[8]
+
+        w.writerow([" "])
+        w.writerow([" ", " ", " ", " ", " ", " ", " ", "Grand Total:", 
+            str(round(member_hrs_grandtotal,1))])
+        w.writerow([" "])
+
+    db.commit()
+    db.close()
+    logger.info('Executed MemberUseLog report.')
