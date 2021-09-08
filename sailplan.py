@@ -1127,7 +1127,7 @@ def sailplanmenu(mywin):
 		# Create a new window
 		sp_win = Tk()
 		sp_win.title("Sail Plan")
-		sp_win.overrideredirect(True)
+		#sp_win.overrideredirect(True)
 
 		screen_width = sp_win.winfo_screenwidth()
 		screen_height = sp_win.winfo_screenheight()

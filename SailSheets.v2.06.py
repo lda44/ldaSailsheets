@@ -98,7 +98,7 @@ def main():
     # Start with the main window (aka root)
     root = Tk()
     root.title("Welcome to Sailsheets")
-    root.overrideredirect(True)
+    #root.overrideredirect(True)
     # set the default window size
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
@@ -128,7 +128,7 @@ def main():
     if my_user == 'npscadmin':
         admin_state = "normal"
         main_banner = "ADMIN -- Navy Patuxent Sailing Club -- ADMIN"
-        main_color = "blue"
+        main_color = "red"
     else:
         admin_state = "disabled"
         main_banner = "Navy Patuxent Sailing Club"
