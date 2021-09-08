@@ -98,15 +98,17 @@ def main():
     # Start with the main window (aka root)
     root = Tk()
     root.title("Welcome to Sailsheets")
-
+    root.overrideredirect(True)
     # set the default window size
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    app_width = int((screen_width / 2) * .70)
-    app_height = int(screen_height * .80)
-
+    
     num_monitors = len(get_monitors())
 
+    app_width = int((screen_width / num_monitors) * .70)
+    app_height = int(screen_height * .80)
+
+    
     x = (screen_width / (2 * num_monitors)) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
     y = (screen_height / 2) - (app_height / 2)
 
