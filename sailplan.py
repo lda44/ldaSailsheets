@@ -751,17 +751,16 @@ def sailplanmenu(mywin):
 			# 
 			grace_period = get_settings()[1]
 			#print('Minutes: ', minutes_sailed, '\n', 'Grace: ', grace_period, '\n')
-
+			purpose_fees = get_purpose_fees(sailplan[4])
+			
 			if minutes_sailed <= float(grace_period):
-				sailplan[8] = hours_sailed
-				sailplan[13] = 1
 				messagebox.showinfo('', 'Sail less than minimum amount, no charge.')
-				return
-
+				logger.info('Sailplan less than minimum amount, no charge: ' + str(sailplan[0]) + '-' + str(sailplan[3]))
+				purpose_fees[3] = 'Not minimum sail'	
+				
 			sailplan[8] = round(hours_sailed, 1)
 			sailplan[13] = 1
 			
-			purpose_fees = get_purpose_fees(sailplan[4])
 			boat_rates = get_boat_rates(sailplan[3])
 			crewlist = get_crew_list(myspid)
 			#print('Crew List of tuples:', '\n', crewlist)
@@ -856,7 +855,10 @@ def sailplanmenu(mywin):
 				
 				# total amount to be paid to MWR
 				#
-				sailplan[11] = round(mwr_bill, 2)
+				if sailplan[3].lower() == 'skyline':
+					sailplan[11] = 0
+				else:
+					sailplan[11] = round(mwr_bill, 2)
 			else:
 				# this would be a free event
 				#
@@ -869,7 +871,7 @@ def sailplanmenu(mywin):
 				sailplan[10] = 0 	# total collected by NPSC
 				sailplan[11] = 0 	# total due to MWR
 
-			logger.debug('Sailplan closed & written to ledger: ' + str(sailplan[0]))
+			logger.info('Sailplan closed & written to ledger: ' + str(sailplan[0]) + '-' + str(sailplan[3]))
 
 			# At this point we have:
 			# 1. sailplan list of fields that needs to be written to the sailplan table
