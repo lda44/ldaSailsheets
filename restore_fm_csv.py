@@ -120,6 +120,15 @@ def update_sailplan(sailplanfile):
 		for row in r:
 			if int(row['idSailPlan']) > last_id:
 				logger.debug('Reading row: ' + str(row))
+				if row['TimeIn'] == 'NULL': 
+					row['TimeIn'] = row['EstReturnTime']
+				if row['HoursUsed'] == 'NULL': 
+					row['HoursUsed'] = '0'
+				if row['BillableMembers'] == 'NULL': 
+					row['BillableMembers'] = '0'
+				if row['Completed'] == 'NULL': 
+					row['Completed'] = '0'
+
 				c.execute("""INSERT INTO SailPlan (sp_id,
 					sp_timeout,
 					sp_skipper_id,
