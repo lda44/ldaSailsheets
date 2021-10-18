@@ -327,7 +327,7 @@ def sailplanmenu(mywin):
 				self._hits = []
 				self._hit_index = 0
 				self.position = 0
-				self.bind('<KeyRelease>', self.handle_keyrelease)
+				self.bind('<KeyRelease>', self.handle_event)
 				self['values'] = self._completion_list  # Setup our popup menu
 
 			def autocomplete(self, delta=0):
@@ -354,8 +354,9 @@ def sailplanmenu(mywin):
 						self.insert(0,self._hits[self._hit_index])
 						self.select_range(self.position, END)
 
-			def handle_keyrelease(self, event):
+			def handle_event(self, event):
 				"""event handler for the keyrelease event on this widget"""
+				#print('Event Key: ', event.keysym)
 				if event.keysym == "Return" or event.keysym == "Tab":
 					if str(self) == '.!labelframe3.!autocompletecombobox':
 						logger.info(str(self) + ': Crew added')
@@ -364,7 +365,7 @@ def sailplanmenu(mywin):
 						logger.info(str(self) + ': Skipper added')
 						set_skipper_id(event)
 					else: 
-						logger.info(str(self) + ': Nothing')
+						logger.info(str(self) + ': Nothing added')
 				if event.keysym == "BackSpace":
 					self.delete(self.index(INSERT), END)
 					self.position = self.index(END)
@@ -535,6 +536,16 @@ def sailplanmenu(mywin):
 
 
 		def update_sailplan(myspid):
+			# first confirm the Skipper fields are filled
+			if str(sp_skid_e.get()) == '0.0':
+				if len(skip_n_combo.get()) == 0: 
+					sp_win.attributes('-topmost',0)
+					messagebox.showinfo('ENTRY ERROR!', 'Skipper name is blank!')
+					sp_win.attributes('-topmost',1)
+					return
+				else:	set_skipper_id(0)
+			
+
 			# pull data from entry boxes and save to the sp table
 			# as an open sail plan
 			#
@@ -936,10 +947,10 @@ def sailplanmenu(mywin):
 			return c.lastrowid
 
 
-		def enter_press(event): 
-			if sp_skid_e.get() == '': return
-			#skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-			set_skipper_name(event)
+		# def enter_press(event): 
+		# 	if sp_skid_e.get() == '': return
+		# 	#skip_n_combo.set(name_dict[float(sp_skid_e.get())])
+		# 	set_skipper_name(event)
 
 
 		def set_skipper_id(event): 
@@ -964,25 +975,26 @@ def sailplanmenu(mywin):
 				crewlist = [x[1] for x in crewqry]
 				crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			logger.info('Set Skipper ID function finished.')
+			print('Skipper ID set')
 
 
-		def set_skipper_name(event): 
-			# Need to remove this and show it as read only.
-			global crew_tree
-			if sp_skid_e.get() == '': return
-			skipid = sp_skid_e.get()
-			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-			#crewqry = getcrewlist(mysp_id, '0')
-			if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
-				logger.info('Tried to add a duplicate Skipper.')
-				sp_win.attributes('-topmost',0)
-				messagebox.showinfo('', 'That Skipper is already listed.')
-				sp_win.attributes('-topmost',1)
-			else:
-				crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
-				crewlist = [x[1] for x in crewqry]
-				crew_tree = makecrewtree(crewqry, crew_tree, 0)
-			logger.info('Set Skipper Name function finished.')
+		# def set_skipper_name(event): 
+		# 	# Need to remove this and show it as read only.
+		# 	global crew_tree
+		# 	if sp_skid_e.get() == '': return
+		# 	skipid = sp_skid_e.get()
+		# 	skip_n_combo.set(name_dict[float(sp_skid_e.get())])
+		# 	#crewqry = getcrewlist(mysp_id, '0')
+		# 	if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
+		# 		logger.info('Tried to add a duplicate Skipper.')
+		# 		sp_win.attributes('-topmost',0)
+		# 		messagebox.showinfo('', 'That Skipper is already listed.')
+		# 		sp_win.attributes('-topmost',1)
+		# 	else:
+		# 		crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
+		# 		crewlist = [x[1] for x in crewqry]
+		# 		crew_tree = makecrewtree(crewqry, crew_tree, 0)
+		# 	logger.info('Set Skipper Name function finished.')
 
 
 		def choosecrew(event):
@@ -1381,8 +1393,8 @@ def sailplanmenu(mywin):
 	          foreground=[("disabled", "gray")],
 	          background=[("disabled", disabled_bg)])
 		else:
-			sp_skid_e.bind('<KeyPress-Return>', set_skipper_name)
-			sp_skid_e.bind('<KeyPress-Tab>', set_skipper_name)
+			# sp_skid_e.bind('<KeyPress-Return>', set_skipper_name)
+			# sp_skid_e.bind('<KeyPress-Tab>', set_skipper_name)
 			a_member_c.bind('<<ComboboxSelected>>', choosecrew)
 			a_guestof_c.bind('<<ComboboxSelected>>', chooseguest)
 			crew_tree.bind('<ButtonRelease-1>', select_crew)
