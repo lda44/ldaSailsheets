@@ -347,19 +347,32 @@ def ReportMemberUse(mymonth, myyear):
         
     with open(myreportname, 'w', newline='') as f:
         w = csv.writer(f, dialect='excel')
+        # These next 4 rows write the header to the report
         w.writerow(["Report period: ", month_list[mymonth-1], myyear])
         w.writerow([" "])
         w.writerow(["Sail Date", "Boat", "Member ID", "Member Name", "Ledger ID", "Purpose", 
             "Time Departed", "Time Returned", "Hours", "Member Fee"])
         w.writerow([" "])
+
+        # pull the first record, then set the initial sail date, boat, membername, and timeout
+        # the idea is to print a new line each time one of those change.  if timeout changes, 
+        # then it's a new rental of the same boat.
+
         firstrecord = usagetable[0]
-        firstreportrecord = 0
+        firstreportrecord = 0 # not sure I remember what this does.
+
         saildate = firstrecord[0]
         boat = firstrecord[1]
         membername = firstrecord[3]
-    
+        timeout = firstrecord[6]
+        
+        # set the summing values in the report to zero, used for validation and summary reporting.
         member_hrs_grandtotal = 0
         member_bill_grandtotal = 0
+
+        # now iterate through the entire list of records, create the row of data, and if
+        # the record is for this month and year, then evaluate whether the date, boat or name
+        # have changed, and then add the record's hours and/or fees to the summing values
 
         for record in usagetable:
             myrow = ([' ', ' ', 
@@ -377,6 +390,7 @@ def ReportMemberUse(mymonth, myyear):
             if (saildate == record[0] 
                     and boat == record[1] 
                     and membername == record[3] 
+                    and timeout == record[6]
                     and mydate.month == mymonth and mydate.year == myyear):
                 w.writerow(myrow)
                 member_bill_grandtotal += record[9]
@@ -384,24 +398,41 @@ def ReportMemberUse(mymonth, myyear):
             elif (saildate == record[0] 
                     and boat == record[1] 
                     and membername != record[3] 
+                    and timeout == record[6]
                     and mydate.month == mymonth and mydate.year == myyear):
                 membername = record[3]
                 member_bill_grandtotal += record[9]
                 w.writerow(myrow)
+            
+            elif (saildate == record[0] 
+                    and boat == record[1] 
+                    and timeout != record[6]
+                    and mydate.month == mymonth and mydate.year == myyear):
+                boat = record[1]
+                membername = record[3]
+                timeout = record[6]
+                w.writerow([" ", boat])
+                member_hrs_grandtotal += record[8]
+                member_bill_grandtotal += record[9]
+                w.writerow(myrow)
+            
             elif (saildate == record[0] 
                     and boat != record[1] 
                     and mydate.month == mymonth and mydate.year == myyear):
                 boat = record[1]
                 membername = record[3]
+                timeout = record[6]
                 w.writerow([" ", boat])
                 member_hrs_grandtotal += record[8]
                 member_bill_grandtotal += record[9]
                 w.writerow(myrow)
+
             elif (saildate != record[0]
                     and mydate.month == mymonth and mydate.year == myyear):
                 saildate = record[0]
                 boat = record[1]
                 membername = record[3]
+                timeout = record[6]
                 w.writerow([str(saildate)])
                 member_hrs_grandtotal += record[8]
                 member_bill_grandtotal += record[9]
