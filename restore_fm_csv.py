@@ -172,7 +172,7 @@ def update_sailplan(sailplanfile):
 def main():
 	mywin = Tk()
 
-	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-09-01_Backup_CSV_Files',
+	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2022',
 		title='Open ledger.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)
@@ -181,7 +181,7 @@ def main():
 		Success = update_ledger(mywin.ledgerfile)
 		logger.info(mywin.ledgerfile + ' imported to Ledger Table.')
 		
-	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-09-01_Backup_CSV_Files',
+	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2022',
 		title='Open sailplan.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)

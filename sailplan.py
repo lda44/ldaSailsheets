@@ -104,7 +104,7 @@ class sp_askokcancel(object):
 # 
 # Sail Plan
 #
-def sailplanmenu(mywin):
+def sailplanmenu(mywin, my_user):
 	# what works on 7/19:
 	#
 	# - Add a sailplan.  
@@ -232,7 +232,10 @@ def sailplanmenu(mywin):
 			else:
 				# change the edit state
 				addrecord.config(state='disabled')
-				delrecord.config(state='normal')
+				if my_user == 'npscadmin':
+					delrecord.config(state='normal')
+				else:
+					delrecord.config(state='disabled')
 				editrecord.config(state='normal')
 			logger.info('select_record function returned spid and sp_closed fields.')
 			return [values[0], values[9]]
@@ -540,7 +543,7 @@ def sailplanmenu(mywin):
 			if str(sp_skid_e.get()) == '0.0':
 				if len(skip_n_combo.get()) == 0: 
 					sp_win.attributes('-topmost',0)
-					messagebox.showinfo('ENTRY ERROR!', 'Skipper name is blank!')
+					messagebox.showinfo('ENTRY ERROR!', 'Skipper name is blank.')
 					sp_win.attributes('-topmost',1)
 					return
 				else:	set_skipper_id(0)
@@ -1099,7 +1102,7 @@ def sailplanmenu(mywin):
 		#########################################################
 		#
 		# the following are variables passed to the function when executed. 
-		# Once testing is complete, the function will be altered to have thise
+		# Once testing is complete, the function will be altered to have these
 		# as input variables to the function so that it can execute both 
 		# add and edit of the sailplan.  
 		#   

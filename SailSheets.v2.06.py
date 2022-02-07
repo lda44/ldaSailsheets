@@ -176,7 +176,7 @@ def main():
     edit_menu.add_separator()
 
     edit_menu.add_command(label="Sail Plans", 
-        command=lambda: sailplan.sailplanmenu(root))
+        command=lambda: sailplan.sailplanmenu(root, my_user))
 
     edit_menu.add_command(label="Ledger Table (raw)", 
         command=lambda: editledger.e_ledger(root))
@@ -198,7 +198,7 @@ def main():
 
     # If the user is not the admin, then just show the sail plan menu
     if my_user != 'npscadmin':
-        sailplan.sailplanmenu(root)
+        sailplan.sailplanmenu(root, my_user)
 
     root.mainloop()
 
