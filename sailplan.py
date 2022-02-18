@@ -1368,15 +1368,20 @@ def sailplanmenu(mywin, my_user):
 
 		# This button closes the sailplan window and checks the boat in.
 		#
+		# 2/18/2022 -- disable this button if the SP has not yet been saved.
+		#
 		check_in = Button(button_frame, text="Check In", 
-			state=edit_state, command=lambda: checkin_sailplan(mysp_id))
+			command=lambda: checkin_sailplan(mysp_id))
 		check_in.grid(row=0, column=3, padx=10, pady=10)
-		check_in.config(state=edit_state)
+		if new == 1:
+			check_in.config(state="disabled")
+		else:
+			check_in.config(state=edit_state)
 
 		# This button closes the sailplan window and saves the sailplan in OPEN state,
 		# checking the boat OUT. State will be disabled for an edit, normal for new.
 		#
-		save_btn = Button(button_frame, text="Save Sail Plan", 
+		save_btn = Button(button_frame, text="Check Out or Save Sail Plan", 
 			command=lambda: update_sailplan(mysp_id))
 		save_btn.grid(row=0, column=5, sticky=E, padx=10, pady=10)
 		save_btn.config(state=edit_state)
