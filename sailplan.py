@@ -163,7 +163,7 @@ def sailplanmenu(mywin, my_user):
 		c.execute("""SELECT sp_id, sp_timeout, sp_skipper_id, Members.m_name as skipper, 
 			sp_sailboat, sp_purpose, sp_description, sp_estrtntime, sp_timein, sp_completed 
 			FROM SailPlan JOIN Members ON sp_skipper_id=Members.m_id
-			WHERE sp_timeout >= :qdt1 AND sp_timeout < :qdt2"""
+			WHERE (sp_timeout >= :qdt1 AND sp_timeout < :qdt2) OR sp_completed=0"""
 			, {'qdt1': mdt1, 'qdt2': mdt2,})
 		
 		# fetch the data
@@ -1466,7 +1466,13 @@ def sailplanmenu(mywin, my_user):
 	#	myinfo = select_record(e)
 
 
-	def datepicker():
+	def date_entry_selected(event):
+		w = event.widget
+		date = w.get_date()
+		print('Selected date: {}'.format(date))
+
+
+	def datepicker(e):
 		global my_date
 		my_date = cal.get_date()
 		q_sp_table(dt.date.fromisoformat(my_date))
@@ -1490,15 +1496,10 @@ def sailplanmenu(mywin, my_user):
 	my_label = Label(mywin, text = "Sail Plans", fg="red", font=("Helvetica", 18))
 	my_label.pack(pady=5)
 
-  
-	#my_date = StringVar()
 	todaysdate = dt.datetime.today()
-	#thisday = todaysdate.day
-	#thismonth = todaysdate.month
-	#thisyear = todaysdate.year
-	my_date = todaysdate.isoformat()[:10]
-	#print('Main function: ' + str(my_date))
 
+	my_date = todaysdate.isoformat()[:10]
+	
 	# Add the style for the editing window
 	style = ttk.Style()
 
@@ -1513,9 +1514,11 @@ def sailplanmenu(mywin, my_user):
 	cal = Calendar(cal_frame, firstweekday='sunday', date_pattern='yyyy-mm-dd',
 		showweeknumbers=FALSE, selectmode='day')
 	cal.pack(pady=5)
+	cal.bind("<<CalendarSelected>>", datepicker)
+	#cal.bind("<Double-Button-1>", datepicker)
 	
-	calbtn = Button(cal_frame, text="Select Date", command=datepicker)
-	calbtn.pack(pady=5)
+#	calbtn = Button(cal_frame, text="Select Date", command=datepicker)
+#	calbtn.pack(pady=5)
 
 	# Buttons for commands to modify the records
 	#
@@ -1611,8 +1614,6 @@ def sailplanmenu(mywin, my_user):
 	
 	# Bindings
 	#
-	cal.bind("<ButtonRelease-1>", datepicker)
-	cal.bind("<Double-Button-1>", datepicker)
 	my_tree.bind("<ButtonRelease-1>", select_record)
 	my_tree.bind("<Double-Button-1>", edit_this_record)
 
