@@ -989,26 +989,6 @@ def sailplanmenu(mywin, my_user):
 				crewlist = [x[1] for x in crewqry]
 				crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			logger.info('Set Skipper ID function finished.')
-			print('Skipper ID set')
-
-
-		# def set_skipper_name(event): 
-		# 	# Need to remove this and show it as read only.
-		# 	global crew_tree
-		# 	if sp_skid_e.get() == '': return
-		# 	skipid = sp_skid_e.get()
-		# 	skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-		# 	#crewqry = getcrewlist(mysp_id, '0')
-		# 	if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
-		# 		logger.info('Tried to add a duplicate Skipper.')
-		# 		sp_win.attributes('-topmost',0)
-		# 		messagebox.showinfo('', 'That Skipper is already listed.')
-		# 		sp_win.attributes('-topmost',1)
-		# 	else:
-		# 		crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
-		# 		crewlist = [x[1] for x in crewqry]
-		# 		crew_tree = makecrewtree(crewqry, crew_tree, 0)
-		# 	logger.info('Set Skipper Name function finished.')
 
 
 		def choosecrew(event):
@@ -1155,6 +1135,7 @@ def sailplanmenu(mywin, my_user):
 		# Create a new window
 		sp_win = Tk()
 		sp_win.title("Sail Plan")
+		sp_win.attributes('-topmost', True)
 		#sp_win.overrideredirect(True)
 
 		screen_width = sp_win.winfo_screenwidth()
@@ -1542,12 +1523,6 @@ def sailplanmenu(mywin, my_user):
 		command=lambda: add_edit_record(select_record(0)[0], select_record(0)[1]))
 	editrecord.grid(row=0, column=3, columnspan=5, sticky=E, padx=10, pady=5)
 
-	# This button removes all the frames and buttons and closes the db.
-	#
-	#alldone = Button(button_frame, text="Quit", command=mywin.quit)
-	#alldone.grid(row=0, column=4, padx=10, pady=5)
-	#alldone.focus()	
-
 	# Create the frame for the sailplan table
 	#
 	my_frame = Frame(mywin)
@@ -1557,13 +1532,13 @@ def sailplanmenu(mywin, my_user):
 	#
 	y_tree_scroll = Scrollbar(my_frame)
 	y_tree_scroll.pack(side=RIGHT, fill=Y)
+
 	#x_tree_scroll = Scrollbar(my_frame)
 	#x_tree_scroll.pack(side=BOTTOM, fill=Y)
 
 	# Create the Treeview
 	#
 	my_tree = ttk.Treeview(my_frame, yscrollcommand=y_tree_scroll.set, selectmode='extended')
-
 
 	# Configure the scrollbar
 	#
