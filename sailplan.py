@@ -449,11 +449,22 @@ def sailplanmenu(mywin, my_user):
 			db = sqlite3.connect('Sailsheets.db')
 			c = db.cursor()
 
-			# query to pull the data from the boats table
+			# query to pull the list of all boats from the boats table
 			c.execute("""SELECT boat_name FROM Boats WHERE Retired=0 ORDER BY boat_name""")
 
 			# fetch the data
 			myboatlist = [x[0] for x in c.fetchall()]
+
+			# now query the sailplan table for a list of boats NOT available
+			c.execute("""SELECT sp_sailboat FROM SailPlan WHERE sp_completed=0 AND sp_sailboat<>'' ORDER BY sp_sailboat""")
+			
+			# fetch the data
+			myboatsoutlist = [x[0] for x in c.fetchall()]
+
+			# 2/18/2022
+			# Now remove all the boats checked out from the available boats list
+			for x in myboatsoutlist:
+				myboatlist.remove(x)
 
 			# commit and close the DB
 			db.commit()
