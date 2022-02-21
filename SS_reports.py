@@ -13,6 +13,7 @@ import sqlite3
 import datetime 
 from pathlib import Path
 from datetime import date
+from tkinter import messagebox
 import csv
 
 # Set up the logging system
@@ -272,6 +273,10 @@ def ReportUsage(mymonth, myyear, NPSCOnly):
     db.commit()
     db.close()
     logger.info('Executed reportusage ' + str(NPSCOnly) + ' (1=NPSC only)')
+    if NPSCOnly == 1:
+        messagebox.showinfo('', "NPSC Boat usage report in folder: " + reportpath)
+    else:
+        messagebox.showinfo('', "MWR Boat usage report in folder: " + reportpath)
 
 def ReportMemberUse(mymonth, myyear):
     d = datetime.date(day=1, month=mymonth, year=myyear)
@@ -410,7 +415,6 @@ def ReportMemberUse(mymonth, myyear):
                     and mydate.month == mymonth and mydate.year == myyear):
                 boat = record[1]
                 membername = record[3]
-                timeout = record[6]
                 w.writerow([" ", boat])
                 member_hrs_grandtotal += record[8]
                 member_bill_grandtotal += record[9]
@@ -448,6 +452,7 @@ def ReportMemberUse(mymonth, myyear):
     db.commit()
     db.close()
     logger.info('Executed ReportMemberUse report.')
+    messagebox.showinfo('', "Member Usage report in folder: " + reportpath)
 
 def MemberUseLog(member_id):
     
@@ -557,3 +562,4 @@ def MemberUseLog(member_id):
     db.commit()
     db.close()
     logger.info('Executed MemberUseLog report.')
+    messagebox.showinfo('', "MemberUseLog report in folder: " + reportpath)
