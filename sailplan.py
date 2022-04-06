@@ -41,13 +41,16 @@ class sp_askokcancel(object):
 	# Setting Geometry
 		screen_width = self.root.winfo_screenwidth()
 		screen_height = self.root.winfo_screenheight()
-		app_width = int((screen_width / 2) * .6)
-		app_height = int(screen_height * .6)
-
-		num_monitors = len(get_monitors())
-
-		x = (screen_width / (2 * num_monitors)) - (app_width / 2) 
-		y = (screen_height / 2) - (app_height / 2)
+		if len(get_monitors()) != 1:
+			app_width = int((screen_width / 2) * .6)
+			app_height = int(screen_height * .6)
+			x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) 
+			y = (screen_height / 2) - (app_height / 2)
+		else:
+			app_width = int((screen_width / 2) * .9)
+			app_height = int(screen_height * .6)
+			x = (screen_width / 2) - (app_width / 2)
+			y = (screen_height / 2) - (app_height / 2)
 
 		self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
@@ -1142,11 +1145,17 @@ def sailplanmenu(mywin, my_user):
 
 		screen_width = sp_win.winfo_screenwidth()
 		screen_height = sp_win.winfo_screenheight()
-		app_width = int((screen_width / 2) * .39)
-		app_height = int(screen_height * .60)
 
-		x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
-		y = (screen_height / 2) - (app_height / 2)
+		if len(get_monitors()) != 1:
+			app_width = int((screen_width / 2) * .39)
+			app_height = int(screen_height * .60)
+			x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) 
+			y = (screen_height / 2) - (app_height / 2)
+		else:
+			app_width = int((screen_width / 2) * .70)
+			app_height = int(screen_height * .60)
+			x = (screen_width / 2) - (app_width / 2)
+			y = (screen_height / 2) - (app_height / 2)
 
 		sp_win.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
