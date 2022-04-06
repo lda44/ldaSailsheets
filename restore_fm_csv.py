@@ -48,7 +48,7 @@ def update_ledger(ledgerfile):
 	# get the last row ID#
 	c.execute('SELECT * FROM Ledger ORDER BY ledger_id DESC LIMIT 1')
 	result = c.fetchone()
-	last_id = result[0]
+	last_id = int(result[0])
 	logger.debug('Fetched last ID from Ledger: ' + str(last_id))
 
 	# Open the csv file and read each line, then if ledger ID > last_id, import it
@@ -172,7 +172,7 @@ def update_sailplan(sailplanfile):
 def main():
 	mywin = Tk()
 
-	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2022',
+	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2022',
 		title='Open ledger.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)

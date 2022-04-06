@@ -779,7 +779,9 @@ def sailplanmenu(mywin, my_user):
 			purpose_fees = get_purpose_fees(sailplan[4])
 			
 			if minutes_sailed <= float(grace_period):
+				sp_win.attributes('-topmost',0)
 				messagebox.showinfo('', 'Sail less than minimum amount, no charge.')
+				sp_win.attributes('-topmost',1)
 				logger.info('Sailplan less than minimum amount, no charge: ' + str(sailplan[0]) + '-' + str(sailplan[3]))
 				purpose_fees[3] = 'Not minimum sail'	
 				
