@@ -17,6 +17,10 @@
         Backup: /home/NPSC/SailSheets/Backups
         Import: /home/NPSC/SailSheets/Transfer
 
+    For versioning X.YY.ZZ:
+        X = schema changes or changes in business process (major outcomes)
+        YY = changes in functionality, but business process flow does not change
+        ZZ = bug fixes but no changes in functionality (aka just making it work as intended)
 
     This app uses sqlite3, tkinter, and tkcalendar
     Ensure these are installed on the linux box if using for the first 
@@ -94,15 +98,17 @@ def main():
     # Start with the main window (aka root)
     root = Tk()
     root.title("Welcome to Sailsheets")
-
+    #root.overrideredirect(True)
     # set the default window size
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    app_width = int((screen_width / 2) * .70)
-    app_height = int(screen_height * .80)
-
+    
     num_monitors = len(get_monitors())
 
+    app_width = int((screen_width / num_monitors) * .70)
+    app_height = int(screen_height * .80)
+
+    
     x = (screen_width / (2 * num_monitors)) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
     y = (screen_height / 2) - (app_height / 2)
 
@@ -122,7 +128,7 @@ def main():
     if my_user == 'npscadmin':
         admin_state = "normal"
         main_banner = "ADMIN -- Navy Patuxent Sailing Club -- ADMIN"
-        main_color = "blue"
+        main_color = "red"
     else:
         admin_state = "disabled"
         main_banner = "Navy Patuxent Sailing Club"
@@ -170,7 +176,7 @@ def main():
     edit_menu.add_separator()
 
     edit_menu.add_command(label="Sail Plans", 
-        command=lambda: sailplan.sailplanmenu(root))
+        command=lambda: sailplan.sailplanmenu(root, my_user))
 
     edit_menu.add_command(label="Ledger Table (raw)", 
         command=lambda: editledger.e_ledger(root))
@@ -181,6 +187,8 @@ def main():
     my_menu.add_cascade(label="Reports", menu=reports_menu, state=admin_state)
     reports_menu.add_command(label="Create Monthly Reports", 
         command=lambda: SS_admin.monthly_reports(root))
+    reports_menu.add_command(label="Create Member Use Log", 
+        command=lambda: SS_admin.member_usage_log(root))
 
 
     # Let's put a label at the top of the window
@@ -190,7 +198,7 @@ def main():
 
     # If the user is not the admin, then just show the sail plan menu
     if my_user != 'npscadmin':
-        sailplan.sailplanmenu(root)
+        sailplan.sailplanmenu(root, my_user)
 
     root.mainloop()
 

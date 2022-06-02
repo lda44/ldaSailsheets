@@ -48,7 +48,7 @@ def update_ledger(ledgerfile):
 	# get the last row ID#
 	c.execute('SELECT * FROM Ledger ORDER BY ledger_id DESC LIMIT 1')
 	result = c.fetchone()
-	last_id = result[0]
+	last_id = int(result[0])
 	logger.debug('Fetched last ID from Ledger: ' + str(last_id))
 
 	# Open the csv file and read each line, then if ledger ID > last_id, import it
@@ -57,6 +57,13 @@ def update_ledger(ledgerfile):
 		for row in r:
 			if int(row['idLedger']) > last_id:
 				logger.debug('Reading row: ' + str(row))
+				if row['idBillTo'] == 'NULL': 
+					row['idBillTo'] = row['idMember']
+				if row['Fee'] == 'NULL': 
+					row['Fee'] = '0'
+				if row['UploadDate'] == 'NULL': 
+					row['UploadDate'] = row['Date']
+				
 				c.execute("""INSERT INTO Ledger (ledger_id, 
 					l_date,
 					l_member_id,
@@ -113,6 +120,15 @@ def update_sailplan(sailplanfile):
 		for row in r:
 			if int(row['idSailPlan']) > last_id:
 				logger.debug('Reading row: ' + str(row))
+				if row['TimeIn'] == 'NULL': 
+					row['TimeIn'] = row['EstReturnTime']
+				if row['HoursUsed'] == 'NULL': 
+					row['HoursUsed'] = '0'
+				if row['BillableMembers'] == 'NULL': 
+					row['BillableMembers'] = '0'
+				if row['Completed'] == 'NULL': 
+					row['Completed'] = '0'
+
 				c.execute("""INSERT INTO SailPlan (sp_id,
 					sp_timeout,
 					sp_skipper_id,
@@ -156,7 +172,7 @@ def update_sailplan(sailplanfile):
 def main():
 	mywin = Tk()
 
-	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-08-04_Backup_CSV_Files',
+	mywin.ledgerfile = filedialog.askopenfilename(initialdir='./Backups/2022',
 		title='Open ledger.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)
@@ -165,7 +181,7 @@ def main():
 		Success = update_ledger(mywin.ledgerfile)
 		logger.info(mywin.ledgerfile + ' imported to Ledger Table.')
 		
-	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2021/2021-08-04_Backup_CSV_Files',
+	mywin.sailplanfile = filedialog.askopenfilename(initialdir='./Backups/2022',
 		title='Open sailplan.CSV file',
 		filetypes=[("CSV Files", "*.csv")]
 		)

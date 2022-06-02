@@ -41,13 +41,16 @@ class sp_askokcancel(object):
 	# Setting Geometry
 		screen_width = self.root.winfo_screenwidth()
 		screen_height = self.root.winfo_screenheight()
-		app_width = int((screen_width / 2) * .6)
-		app_height = int(screen_height * .6)
-
-		num_monitors = len(get_monitors())
-
-		x = (screen_width / (2 * num_monitors)) - (app_width / 2) 
-		y = (screen_height / 2) - (app_height / 2)
+		if len(get_monitors()) != 1:
+			app_width = int((screen_width / 2) * .6)
+			app_height = int(screen_height * .6)
+			x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) 
+			y = (screen_height / 2) - (app_height / 2)
+		else:
+			app_width = int((screen_width / 2) * .9)
+			app_height = int(screen_height * .6)
+			x = (screen_width / 2) - (app_width / 2)
+			y = (screen_height / 2) - (app_height / 2)
 
 		self.root.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
@@ -104,7 +107,7 @@ class sp_askokcancel(object):
 # 
 # Sail Plan
 #
-def sailplanmenu(mywin):
+def sailplanmenu(mywin, my_user):
 	# what works on 7/19:
 	#
 	# - Add a sailplan.  
@@ -163,7 +166,7 @@ def sailplanmenu(mywin):
 		c.execute("""SELECT sp_id, sp_timeout, sp_skipper_id, Members.m_name as skipper, 
 			sp_sailboat, sp_purpose, sp_description, sp_estrtntime, sp_timein, sp_completed 
 			FROM SailPlan JOIN Members ON sp_skipper_id=Members.m_id
-			WHERE sp_timeout >= :qdt1 AND sp_timeout < :qdt2"""
+			WHERE (sp_timeout >= :qdt1 AND sp_timeout < :qdt2) OR sp_completed=0"""
 			, {'qdt1': mdt1, 'qdt2': mdt2,})
 		
 		# fetch the data
@@ -232,7 +235,10 @@ def sailplanmenu(mywin):
 			else:
 				# change the edit state
 				addrecord.config(state='disabled')
-				delrecord.config(state='normal')
+				if my_user == 'npscadmin':
+					delrecord.config(state='normal')
+				else:
+					delrecord.config(state='disabled')
 				editrecord.config(state='normal')
 			logger.info('select_record function returned spid and sp_closed fields.')
 			return [values[0], values[9]]
@@ -327,7 +333,7 @@ def sailplanmenu(mywin):
 				self._hits = []
 				self._hit_index = 0
 				self.position = 0
-				self.bind('<KeyRelease>', self.handle_keyrelease)
+				self.bind('<KeyRelease>', self.handle_event)
 				self['values'] = self._completion_list  # Setup our popup menu
 
 			def autocomplete(self, delta=0):
@@ -354,8 +360,9 @@ def sailplanmenu(mywin):
 						self.insert(0,self._hits[self._hit_index])
 						self.select_range(self.position, END)
 
-			def handle_keyrelease(self, event):
+			def handle_event(self, event):
 				"""event handler for the keyrelease event on this widget"""
+				#print('Event Key: ', event.keysym)
 				if event.keysym == "Return" or event.keysym == "Tab":
 					if str(self) == '.!labelframe3.!autocompletecombobox':
 						logger.info(str(self) + ': Crew added')
@@ -364,7 +371,7 @@ def sailplanmenu(mywin):
 						logger.info(str(self) + ': Skipper added')
 						set_skipper_id(event)
 					else: 
-						logger.info(str(self) + ': Nothing')
+						logger.info(str(self) + ': Nothing added')
 				if event.keysym == "BackSpace":
 					self.delete(self.index(INSERT), END)
 					self.position = self.index(END)
@@ -445,11 +452,22 @@ def sailplanmenu(mywin):
 			db = sqlite3.connect('Sailsheets.db')
 			c = db.cursor()
 
-			# query to pull the data from the boats table
+			# query to pull the list of all boats from the boats table
 			c.execute("""SELECT boat_name FROM Boats WHERE Retired=0 ORDER BY boat_name""")
 
 			# fetch the data
 			myboatlist = [x[0] for x in c.fetchall()]
+
+			# now query the sailplan table for a list of boats NOT available
+			c.execute("""SELECT sp_sailboat FROM SailPlan WHERE sp_completed=0 AND sp_sailboat<>'' ORDER BY sp_sailboat""")
+			
+			# fetch the data
+			myboatsoutlist = [x[0] for x in c.fetchall()]
+
+			# 2/18/2022
+			# Now remove all the boats checked out from the available boats list
+			for x in myboatsoutlist:
+				myboatlist.remove(x)
 
 			# commit and close the DB
 			db.commit()
@@ -535,6 +553,16 @@ def sailplanmenu(mywin):
 
 
 		def update_sailplan(myspid):
+			# first confirm the Skipper fields are filled
+			if str(sp_skid_e.get()) == '0.0':
+				if len(skip_n_combo.get()) == 0: 
+					sp_win.attributes('-topmost',0)
+					messagebox.showinfo('ENTRY ERROR!', 'Skipper name is blank.')
+					sp_win.attributes('-topmost',1)
+					return
+				else:	set_skipper_id(0)
+			
+
 			# pull data from entry boxes and save to the sp table
 			# as an open sail plan
 			#
@@ -751,17 +779,18 @@ def sailplanmenu(mywin):
 			# 
 			grace_period = get_settings()[1]
 			#print('Minutes: ', minutes_sailed, '\n', 'Grace: ', grace_period, '\n')
-
+			purpose_fees = get_purpose_fees(sailplan[4])
+			
 			if minutes_sailed <= float(grace_period):
-				sailplan[8] = hours_sailed
-				sailplan[13] = 1
+				sp_win.attributes('-topmost',0)
 				messagebox.showinfo('', 'Sail less than minimum amount, no charge.')
-				return
-
+				sp_win.attributes('-topmost',1)
+				logger.info('Sailplan less than minimum amount, no charge: ' + str(sailplan[0]) + '-' + str(sailplan[3]))
+				purpose_fees[3] = 'Not minimum sail'	
+				
 			sailplan[8] = round(hours_sailed, 1)
 			sailplan[13] = 1
 			
-			purpose_fees = get_purpose_fees(sailplan[4])
 			boat_rates = get_boat_rates(sailplan[3])
 			crewlist = get_crew_list(myspid)
 			#print('Crew List of tuples:', '\n', crewlist)
@@ -856,7 +885,10 @@ def sailplanmenu(mywin):
 				
 				# total amount to be paid to MWR
 				#
-				sailplan[11] = round(mwr_bill, 2)
+				if sailplan[3].lower() == 'skyline':
+					sailplan[11] = 0
+				else:
+					sailplan[11] = round(mwr_bill, 2)
 			else:
 				# this would be a free event
 				#
@@ -869,7 +901,7 @@ def sailplanmenu(mywin):
 				sailplan[10] = 0 	# total collected by NPSC
 				sailplan[11] = 0 	# total due to MWR
 
-			logger.debug('Sailplan closed & written to ledger: ' + str(sailplan[0]))
+			logger.info('Sailplan closed & written to ledger: ' + str(sailplan[0]) + '-' + str(sailplan[3]))
 
 			# At this point we have:
 			# 1. sailplan list of fields that needs to be written to the sailplan table
@@ -934,10 +966,10 @@ def sailplanmenu(mywin):
 			return c.lastrowid
 
 
-		def enter_press(event): 
-			if sp_skid_e.get() == '': return
-			#skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-			set_skipper_name(event)
+		# def enter_press(event): 
+		# 	if sp_skid_e.get() == '': return
+		# 	#skip_n_combo.set(name_dict[float(sp_skid_e.get())])
+		# 	set_skipper_name(event)
 
 
 		def set_skipper_id(event): 
@@ -962,25 +994,6 @@ def sailplanmenu(mywin):
 				crewlist = [x[1] for x in crewqry]
 				crew_tree = makecrewtree(crewqry, crew_tree, 0)
 			logger.info('Set Skipper ID function finished.')
-
-
-		def set_skipper_name(event): 
-			# Need to remove this and show it as read only.
-			global crew_tree
-			if sp_skid_e.get() == '': return
-			skipid = sp_skid_e.get()
-			skip_n_combo.set(name_dict[float(sp_skid_e.get())])
-			#crewqry = getcrewlist(mysp_id, '0')
-			if skipid in [x[0] for x in getcrewlist(mysp_id, '0')]:
-				logger.info('Tried to add a duplicate Skipper.')
-				sp_win.attributes('-topmost',0)
-				messagebox.showinfo('', 'That Skipper is already listed.')
-				sp_win.attributes('-topmost',1)
-			else:
-				crewqry = add_crew(1, 1, skip_n_combo.get(), skipid, skipid)
-				crewlist = [x[1] for x in crewqry]
-				crew_tree = makecrewtree(crewqry, crew_tree, 0)
-			logger.info('Set Skipper Name function finished.')
 
 
 		def choosecrew(event):
@@ -1085,7 +1098,7 @@ def sailplanmenu(mywin):
 		#########################################################
 		#
 		# the following are variables passed to the function when executed. 
-		# Once testing is complete, the function will be altered to have thise
+		# Once testing is complete, the function will be altered to have these
 		# as input variables to the function so that it can execute both 
 		# add and edit of the sailplan.  
 		#   
@@ -1127,13 +1140,22 @@ def sailplanmenu(mywin):
 		# Create a new window
 		sp_win = Tk()
 		sp_win.title("Sail Plan")
+		sp_win.attributes('-topmost', True)
+		#sp_win.overrideredirect(True)
+
 		screen_width = sp_win.winfo_screenwidth()
 		screen_height = sp_win.winfo_screenheight()
-		app_width = int((screen_width / 2) * .39)
-		app_height = int(screen_height * .60)
 
-		x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) # screen_width / 4 for 2 monitors, /2 for 1
-		y = (screen_height / 2) - (app_height / 2)
+		if len(get_monitors()) != 1:
+			app_width = int((screen_width / 2) * .39)
+			app_height = int(screen_height * .60)
+			x = (screen_width / (2 * len(get_monitors()))) - (app_width / 2) 
+			y = (screen_height / 2) - (app_height / 2)
+		else:
+			app_width = int((screen_width / 2) * .70)
+			app_height = int(screen_height * .60)
+			x = (screen_width / 2) - (app_width / 2)
+			y = (screen_height / 2) - (app_height / 2)
 
 		sp_win.geometry(f'{app_width}x{app_height}+{int(x)}+{int(y)}')
 
@@ -1349,15 +1371,20 @@ def sailplanmenu(mywin):
 
 		# This button closes the sailplan window and checks the boat in.
 		#
+		# 2/18/2022 -- disable this button if the SP has not yet been saved.
+		#
 		check_in = Button(button_frame, text="Check In", 
-			state=edit_state, command=lambda: checkin_sailplan(mysp_id))
+			command=lambda: checkin_sailplan(mysp_id))
 		check_in.grid(row=0, column=3, padx=10, pady=10)
-		check_in.config(state=edit_state)
+		if new == 1:
+			check_in.config(state="disabled")
+		else:
+			check_in.config(state=edit_state)
 
 		# This button closes the sailplan window and saves the sailplan in OPEN state,
 		# checking the boat OUT. State will be disabled for an edit, normal for new.
 		#
-		save_btn = Button(button_frame, text="Save Sail Plan", 
+		save_btn = Button(button_frame, text="Check Out or Save Sail Plan", 
 			command=lambda: update_sailplan(mysp_id))
 		save_btn.grid(row=0, column=5, sticky=E, padx=10, pady=10)
 		save_btn.config(state=edit_state)
@@ -1377,8 +1404,8 @@ def sailplanmenu(mywin):
 	          foreground=[("disabled", "gray")],
 	          background=[("disabled", disabled_bg)])
 		else:
-			sp_skid_e.bind('<KeyPress-Return>', set_skipper_name)
-			sp_skid_e.bind('<KeyPress-Tab>', set_skipper_name)
+			# sp_skid_e.bind('<KeyPress-Return>', set_skipper_name)
+			# sp_skid_e.bind('<KeyPress-Tab>', set_skipper_name)
 			a_member_c.bind('<<ComboboxSelected>>', choosecrew)
 			a_guestof_c.bind('<<ComboboxSelected>>', chooseguest)
 			crew_tree.bind('<ButtonRelease-1>', select_crew)
@@ -1431,7 +1458,13 @@ def sailplanmenu(mywin):
 	#	myinfo = select_record(e)
 
 
-	def datepicker():
+	def date_entry_selected(event):
+		w = event.widget
+		date = w.get_date()
+		print('Selected date: {}'.format(date))
+
+
+	def datepicker(e):
 		global my_date
 		my_date = cal.get_date()
 		q_sp_table(dt.date.fromisoformat(my_date))
@@ -1455,15 +1488,10 @@ def sailplanmenu(mywin):
 	my_label = Label(mywin, text = "Sail Plans", fg="red", font=("Helvetica", 18))
 	my_label.pack(pady=5)
 
-  
-	#my_date = StringVar()
 	todaysdate = dt.datetime.today()
-	#thisday = todaysdate.day
-	#thismonth = todaysdate.month
-	#thisyear = todaysdate.year
-	my_date = todaysdate.isoformat()[:10]
-	#print('Main function: ' + str(my_date))
 
+	my_date = todaysdate.isoformat()[:10]
+	
 	# Add the style for the editing window
 	style = ttk.Style()
 
@@ -1478,9 +1506,11 @@ def sailplanmenu(mywin):
 	cal = Calendar(cal_frame, firstweekday='sunday', date_pattern='yyyy-mm-dd',
 		showweeknumbers=FALSE, selectmode='day')
 	cal.pack(pady=5)
+	cal.bind("<<CalendarSelected>>", datepicker)
+	#cal.bind("<Double-Button-1>", datepicker)
 	
-	calbtn = Button(cal_frame, text="Select Date", command=datepicker)
-	calbtn.pack(pady=5)
+#	calbtn = Button(cal_frame, text="Select Date", command=datepicker)
+#	calbtn.pack(pady=5)
 
 	# Buttons for commands to modify the records
 	#
@@ -1504,12 +1534,6 @@ def sailplanmenu(mywin):
 		command=lambda: add_edit_record(select_record(0)[0], select_record(0)[1]))
 	editrecord.grid(row=0, column=3, columnspan=5, sticky=E, padx=10, pady=5)
 
-	# This button removes all the frames and buttons and closes the db.
-	#
-	#alldone = Button(button_frame, text="Quit", command=mywin.quit)
-	#alldone.grid(row=0, column=4, padx=10, pady=5)
-	#alldone.focus()	
-
 	# Create the frame for the sailplan table
 	#
 	my_frame = Frame(mywin)
@@ -1519,13 +1543,13 @@ def sailplanmenu(mywin):
 	#
 	y_tree_scroll = Scrollbar(my_frame)
 	y_tree_scroll.pack(side=RIGHT, fill=Y)
+
 	#x_tree_scroll = Scrollbar(my_frame)
 	#x_tree_scroll.pack(side=BOTTOM, fill=Y)
 
 	# Create the Treeview
 	#
 	my_tree = ttk.Treeview(my_frame, yscrollcommand=y_tree_scroll.set, selectmode='extended')
-
 
 	# Configure the scrollbar
 	#
@@ -1576,8 +1600,6 @@ def sailplanmenu(mywin):
 	
 	# Bindings
 	#
-	cal.bind("<ButtonRelease-1>", datepicker)
-	cal.bind("<Double-Button-1>", datepicker)
 	my_tree.bind("<ButtonRelease-1>", select_record)
 	my_tree.bind("<Double-Button-1>", edit_this_record)
 
